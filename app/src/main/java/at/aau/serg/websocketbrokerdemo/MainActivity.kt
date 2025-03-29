@@ -1,36 +1,63 @@
 package at.aau.serg.websocketbrokerdemo
 
-import MyStomp
-import android.content.Intent
+import at.aau.serg.websocketbrokerdemo.network.MyStomp
 import android.os.Bundle
-import android.view.View
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.enableEdgeToEdge
 import com.example.myapplication.R
 
 class MainActivity : ComponentActivity(), Callbacks {
-    lateinit var mystomp:MyStomp
-    lateinit var  response:TextView
+
+    private lateinit var stomp: MyStomp
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        mystomp=MyStomp(this)
 
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.fragment_fullscreen)
 
-        findViewById<Button>(R.id.connectbtn).setOnClickListener { mystomp.connect() }
-        findViewById<Button>(R.id.hellobtn).setOnClickListener{mystomp.sendHello()}
-        findViewById<Button>(R.id.jsonbtn).setOnClickListener{mystomp.sendJson()}
-        response=findViewById(R.id.response_view)
 
+        stomp = MyStomp(this)
+
+        findViewById<Button>(R.id.connectbtn).setOnClickListener {
+            stomp.connect()
+        }
+
+        findViewById<Button>(R.id.hellobtn).setOnClickListener {
+            stomp.sendMove("Anna", "würfelt 6")
+        }
+
+        findViewById<Button>(R.id.jsonbtn).setOnClickListener {
+            stomp.sendChat("Anna", "Hallo an alle!")
+        }
     }
 
     override fun onResponse(res: String) {
-        response.setText(res)
+        runOnUiThread {
+            when {
+                res.contains("Verbunden") -> {
+                    updateStatus("🟢 $res", R.color.status_connected)
+                }
+                res.contains("Nicht verbunden") || res.contains("Getrennt") -> {
+                    updateStatus("🔴 $res", R.color.status_disconnected)
+                }
+                res.contains("Fehler") -> {
+                    updateStatus("🟠 $res", R.color.status_error)
+                    Toast.makeText(this, res, Toast.LENGTH_SHORT).show()
+                }
+                else -> {
+                    updateStatus("ℹ️ $res", R.color.black)
+                }
+            }
+        }
     }
 
-
+    private fun updateStatus(text: String, colorResId: Int) {
+        val status = findViewById<TextView>(R.id.statusText)
+        status.text = text
+        status.setTextColor(resources.getColor(colorResId, theme))
+    }
 }
 

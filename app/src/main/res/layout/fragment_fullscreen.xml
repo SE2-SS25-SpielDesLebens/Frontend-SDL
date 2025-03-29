@@ -1,55 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/frameLayout2"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="?attr/fullscreenBackgroundColor"
-    android:theme="@style/ThemeOverlay.MyApplication.FullscreenContainer"
-    tools:context=".FullscreenFragment">
+        <androidx.constraintlayout.widget.ConstraintLayout
+            xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            xmlns:tools="http://schemas.android.com/tools"
+            android:id="@+id/main_layout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="16dp"
+            tools:context="at.aau.serg.websocketbrokerdemo.MainActivity">
 
-    <Button
-        android:id="@+id/connectbtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Connect"
-        app:layout_constraintBottom_toTopOf="@+id/hellobtn"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.337"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+            <Button
+                android:id="@+id/connectbtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="🔌 Verbinden"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="40dp"/>
 
-    <Button
-        android:id="@+id/hellobtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Send hello"
-        app:layout_constraintBottom_toTopOf="@+id/jsonbtn"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/connectbtn" />
+            <Button
+                android:id="@+id/hellobtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="🎲 Spielzug senden"
+                app:layout_constraintTop_toBottomOf="@+id/connectbtn"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="12dp" />
 
-    <Button
-        android:id="@+id/jsonbtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Send Json"
-        app:layout_constraintBottom_toTopOf="@+id/response_view"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/hellobtn" />
+            <Button
+                android:id="@+id/jsonbtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="💬 Chat senden"
+                app:layout_constraintTop_toBottomOf="@+id/hellobtn"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="12dp" />
 
-    <TextView
-        android:id="@+id/response_view"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="response"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/jsonbtn" />
-</androidx.constraintlayout.widget.ConstraintLayout>
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Status: Getrennt"
+                android:textStyle="bold"
+                android:textColor="#444"
+                app:layout_constraintTop_toBottomOf="@+id/jsonbtn"
+                app:layout_constraintStart_toStartOf="parent"
+                android:layout_marginTop="12dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/messageList"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:contentDescription="Liste der Nachrichten"
+                app:layout_constraintTop_toBottomOf="@+id/statusText"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                tools:listitem="@android:layout/simple_list_item_1" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
