@@ -18,9 +18,15 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
         testOptions {
             unitTests {
-                isIncludeAndroidResources = true // Für Robolectric benötigt
+                isIncludeAndroidResources = true // für Robolectric
+                isReturnDefaultValues = true     // für Mockito
+                all {
+                    it.useJUnitPlatform()
+                    it.finalizedBy(tasks.named("jacocoTestReport"))
+                }
             }
         }
     }
@@ -34,7 +40,7 @@ android {
             )
         }
         debug {
-            enableUnitTestCoverage = true // Für Jacoco-Berichte
+            enableUnitTestCoverage = true
         }
     }
 
@@ -51,18 +57,9 @@ android {
         compose = true
         viewBinding = true
     }
-
-    testOptions {
-        unitTests {
-            all {
-                it.useJUnitPlatform()
-                it.finalizedBy(tasks.named("jacocoTestReport"))
-            }
-            isReturnDefaultValues = true // Für Mockito
-        }
-    }
 }
 
+// ✅ Jacoco-Konfiguration
 tasks.register<JacocoReport>("jacocoTestReport") {
     group = "verification"
     description = "Generates code coverage report for the test task."
@@ -70,57 +67,48 @@ tasks.register<JacocoReport>("jacocoTestReport") {
 
     reports {
         xml.required.set(true)
-        xml.outputLocation.set(file("${project.projectDir}/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml"))
-        html.required.set(true) // HTML-Report für bessere Lesbarkeit
+        html.required.set(true)
+        xml.outputLocation.set(file("${project.buildDir}/reports/jacoco/jacocoTestReport/jacocoTestReport.xml"))
     }
 
     val fileFilter = listOf(
-        "**/R.class",
-        "**/R$*.class",
-        "**/BuildConfig.*",
-        "**/Manifest*.*",
-        "**/*Test*.*",
-        "android/**/*.*"
+        "**/R.class", "**/R$*.class", "**/BuildConfig.*",
+        "**/Manifest*.*", "**/*Test*.*", "android/**/*.*"
     )
 
-    val debugTree =
-        fileTree("${project.layout.buildDirectory.get().asFile}/tmp/kotlin-classes/debug") {
-            exclude(fileFilter)
-        }
+    val kotlinDebugTree = fileTree("${buildDir}/tmp/kotlin-classes/debug") {
+        exclude(fileFilter)
+    }
 
-    val javaDebugTree =
-        fileTree("${project.layout.buildDirectory.get().asFile}/intermediates/javac/debug") {
-            exclude(fileFilter)
-        }
+    val javaDebugTree = fileTree("${buildDir}/intermediates/javac/debug") {
+        exclude(fileFilter)
+    }
 
-    val mainSrc = listOf(
-        "${project.projectDir}/src/main/java",
-        "${project.projectDir}/src/main/kotlin"
-    )
-
-    sourceDirectories.setFrom(files(mainSrc))
-    classDirectories.setFrom(files(debugTree, javaDebugTree))
-    executionData.setFrom(fileTree(project.layout.buildDirectory.get().asFile) {
-        include("jacoco/testDebugUnitTest.exec")
-        include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
+    classDirectories.setFrom(files(kotlinDebugTree, javaDebugTree))
+    sourceDirectories.setFrom(files("src/main/java", "src/main/kotlin"))
+    executionData.setFrom(fileTree(buildDir) {
+        include("jacoco/testDebugUnitTest.exec", "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
     })
 }
 
+// ✅ SonarCloud-Konfiguration
 sonar {
     properties {
         property("sonar.projectKey", "SE2-SS25-SpielDesLebens_Frontend-SDL")
         property("sonar.organization", "se2-ss25-spieldeslebens")
         property("sonar.host.url", "https://sonarcloud.io")
+        property("sonar.language", "kotlin")
+        property("sonar.sources", "src/main/java,src/main/kotlin")
+        property("sonar.tests", "src/test/java,src/test/kotlin")
         property("sonar.java.coveragePlugin", "jacoco")
         property(
             "sonar.coverage.jacoco.xmlReportPaths",
-            "${project.projectDir}/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml"
+            "${project.buildDir}/reports/jacoco/jacocoTestReport/jacocoTestReport.xml"
         )
     }
 }
 
 dependencies {
-    // Bestehende Abhängigkeiten
     implementation(libs.krossbow.websocket.okhttp)
     implementation(libs.krossbow.stomp.core)
     implementation(libs.krossbow.websocket.builtin)
@@ -136,29 +124,21 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("androidx.recyclerview:recyclerview:1.3.1")
 
-    // Test-Abhängigkeiten
+    // Test
     testImplementation(libs.junit)
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
-
-    // Robolectric für Android Unit Tests
     testImplementation("org.robolectric:robolectric:4.10.3")
-
-    // Mockito für Mocking
     testImplementation("org.mockito:mockito-core:5.2.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.0.0")
-
-
-    // ArgumentCaptor Support
     testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
 
-    // Android Test-Abhängigkeiten
+    // Android Test
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-
 }
