@@ -70,7 +70,8 @@ class MyStomp(private val callbacks: Callbacks) {
 
     fun sendChat(player: String, text: String) {
         if (!::session.isInitialized) {
-            callback("❌ Fehler: Verbindung nicht aktiv!")
+            callback("❌1140" +
+                    " Fehler: Verbindung nicht aktiv!")
             return
         }
         val message = StompMessage(playerName = player, messageText = text)
