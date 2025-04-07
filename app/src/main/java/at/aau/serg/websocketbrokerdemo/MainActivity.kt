@@ -38,7 +38,8 @@ class MainActivity : ComponentActivity(), Callbacks {
         runOnUiThread {
             when {
                 res.contains("Verbunden") -> {
-                    updateStatus("🟢 $res", R.color.status_connected)
+                    updateStatus("🟢 $res", R.color.status_connected)git --version
+
                 }
                 res.contains("Nicht verbunden") || res.contains("Getrennt") -> {
                     updateStatus("🔴 $res", R.color.status_disconnected)
