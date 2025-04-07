@@ -6,6 +6,8 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import android.content.Intent
+
 
 
 class MainActivity : ComponentActivity(), Callbacks {
@@ -32,6 +34,7 @@ class MainActivity : ComponentActivity(), Callbacks {
         findViewById<Button>(R.id.jsonbtn).setOnClickListener {
             stomp.sendChat(playerName, "Hallo an alle!")
         }
+
     }
 
     override fun onResponse(res: String) {
