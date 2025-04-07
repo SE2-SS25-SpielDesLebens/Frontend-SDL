@@ -32,14 +32,21 @@ class MainActivity : ComponentActivity(), Callbacks {
         findViewById<Button>(R.id.jsonbtn).setOnClickListener {
             stomp.sendChat(playerName, "Hallo an alle!")
         }
+
+        findViewById<Button>(R.id.jobRequestBtn).setOnClickListener {
+            stomp.sendJobRequest(playerName)
+        }
+
+        findViewById<Button>(R.id.jobReleaseBtn).setOnClickListener {
+            stomp.sendJobRelease(playerName)
+        }
     }
 
     override fun onResponse(res: String) {
         runOnUiThread {
             when {
                 res.contains("Verbunden") -> {
-                    updateStatus("🟢 $res", R.color.status_connected)git --version
-
+                    updateStatus("🟢 $res", R.color.status_connected)
                 }
                 res.contains("Nicht verbunden") || res.contains("Getrennt") -> {
                     updateStatus("🔴 $res", R.color.status_disconnected)

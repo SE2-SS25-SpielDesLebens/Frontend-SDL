@@ -39,18 +39,40 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 android:layout_marginTop="12dp" />
 
-            <TextView
-                android:id="@+id/statusText"
-                android:layout_width="wrap_content"
+            <Button
+                android:id="@+id/jobRequestBtn"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Status: Getrennt"
-                android:textStyle="bold"
-                android:textColor="#444"
+                android:text="📥 Job anfordern"
                 app:layout_constraintTop_toBottomOf="@+id/jsonbtn"
                 app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
                 android:layout_marginTop="12dp" />
 
-            <androidx.recyclerview.widget.RecyclerView
+            <Button
+                android:id="@+id/jobReleaseBtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="📤 Job freigeben"
+                app:layout_constraintTop_toBottomOf="@+id/jobRequestBtn"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="12dp" />
+
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="132dp"
+        android:text="Status: Getrennt"
+        android:textColor="#444"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/jsonbtn" />
+
+    <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/messageList"
                 android:layout_width="0dp"
                 android:layout_height="0dp"

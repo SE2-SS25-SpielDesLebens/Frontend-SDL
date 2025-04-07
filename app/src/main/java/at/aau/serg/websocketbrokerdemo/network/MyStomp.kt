@@ -43,6 +43,10 @@ class MyStomp(private val callbacks: Callbacks) {
                     val output = gson.fromJson(msg, OutputMessage::class.java)
                     callback("💬 ${output.playerName}: ${output.content} (${output.timestamp})")
                 }
+                session.subscribeText("/topic/job").collect { msg ->
+                    val output = gson.fromJson(msg, OutputMessage::class.java)
+                    callback("🧑‍🔧 ${output.playerName}: ${output.content} (${output.timestamp})")
+                }
 
             } catch (e: Exception) {
                 callback("❌ Fehler beim Verbinden: ${e.message}")
@@ -89,4 +93,40 @@ class MyStomp(private val callbacks: Callbacks) {
             callbacks.onResponse(msg)
         }
     }
+    fun sendJobRequest(player: String) {
+        if (!::session.isInitialized) {
+            callback("❌ Fehler: Verbindung nicht aktiv!")
+            return
+        }
+        val message = StompMessage(playerName = player)
+        val json = gson.toJson(message)
+        scope.launch {
+            try {
+                session.sendText("/app/job/request", json)
+                callback("📥 Jobanforderung gesendet")
+            } catch (e: Exception) {
+                callback("❌ Fehler beim Senden (Job request): ${e.message}")
+            }
+        }
+    }
+
+    fun sendJobRelease(player: String) {
+        if (!::session.isInitialized) {
+            callback("❌ Fehler: Verbindung nicht aktiv!")
+            return
+        }
+        val message = StompMessage(playerName = player)
+        val json = gson.toJson(message)
+        scope.launch {
+            try {
+                session.sendText("/app/job/release", json)
+                callback("📤 Jobfreigabe gesendet")
+            } catch (e: Exception) {
+                callback("❌ Fehler beim Senden (Job release): ${e.message}")
+            }
+        }
+    }
+
+
 }
+
