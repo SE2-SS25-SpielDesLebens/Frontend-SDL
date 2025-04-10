@@ -32,13 +32,8 @@ class MainActivity : ComponentActivity(), Callbacks {
         findViewById<Button>(R.id.jsonbtn).setOnClickListener {
             stomp.sendChat(playerName, "Hallo an alle!")
         }
-
         findViewById<Button>(R.id.jobRequestBtn).setOnClickListener {
-            stomp.sendJobRequest(playerName)
-        }
-
-        findViewById<Button>(R.id.jobReleaseBtn).setOnClickListener {
-            stomp.sendJobRelease(playerName)
+            stomp.getJob(playerName, "GetJob!")
         }
     }
 
@@ -68,4 +63,3 @@ class MainActivity : ComponentActivity(), Callbacks {
         status.setTextColor(resources.getColor(colorResId, theme))
     }
 }
-
