@@ -19,6 +19,7 @@ import org.hildan.krossbow.websocket.okhttp.OkHttpWebSocketClient
 private const val WEBSOCKET_URI = "ws://10.0.2.2:8080/websocket-broker/websocket" // Für Emulator! – anpassen bei echtem Gerät
 //private const val WEBSOCKET_URI = "ws://se2-demo.aau.at:53217/websocket-broker/websocket"
 
+
 class MyStomp(private val callbacks: Callbacks) {
 
     private lateinit var session: StompSession
@@ -30,20 +31,39 @@ class MyStomp(private val callbacks: Callbacks) {
         scope.launch {
             try {
                 session = client.connect(WEBSOCKET_URI)
-
-                // Verbindung erfolgreich
                 callback("✅ Verbunden mit Server")
 
                 // Spielzug-Abo
-                session.subscribeText("/topic/game").collect { msg ->
-                    val output = gson.fromJson(msg, OutputMessage::class.java)
-                    callback("🎲 ${output.playerName}: ${output.content} (${output.timestamp})")
+                launch {
+                    session.subscribeText("/topic/game").collect { msg ->
+                        val output = gson.fromJson(msg, OutputMessage::class.java)
+                        callback("🎲 ${output.playerName}: ${output.content} (${output.timestamp})")
+                    }
                 }
 
-                // Chat-Abo (optional)
-                session.subscribeText("/topic/chat").collect { msg ->
-                    val output = gson.fromJson(msg, OutputMessage::class.java)
-                    callback("💬 ${output.playerName}: ${output.content} (${output.timestamp})")
+                // Chat-Abo
+                launch {
+                    session.subscribeText("/topic/chat").collect { msg ->
+                        val output = gson.fromJson(msg, OutputMessage::class.java)
+                        callback("💬 ${output.playerName}: ${output.content} (${output.timestamp})")
+                    }
+                }
+
+                // Job-Abo (einmalig)
+                launch {
+                    session.subscribeText("/topic/getJob").collect { msg ->
+                        val job = gson.fromJson(msg, JobMessage::class.java)
+                        val formatted = """
+                            🎲 Spieler: ${job.playerName}
+                            💼 Beruf: ${job.title}
+                            💰 Gehalt: ${job.salary} €
+                            🎁 Bonus: ${job.bonusSalary} €
+                            🎓 Benötigt Matura: ${if (job.requiresHighSchoolDiploma) "Ja" else "Nein"}
+                            🔒 Bereits vergeben: ${if (job.isTaken) "Ja, an ${job.takenByPlayerName ?: "unbekannt"}" else "Nein"}
+                            🕒 Zeitpunkt: ${job.timestamp}
+                        """.trimIndent()
+                        callback(formatted)
+                    }
                 }
 
             } catch (e: Exception) {
@@ -68,7 +88,8 @@ class MyStomp(private val callbacks: Callbacks) {
             }
         }
     }
-    suspend fun getJob(player: String, action: String) {
+
+    fun getJob(player: String, action: String) {
         if (!::session.isInitialized) {
             callback("❌ Fehler: Verbindung nicht aktiv!")
             return
@@ -77,22 +98,15 @@ class MyStomp(private val callbacks: Callbacks) {
         val message = StompMessage(playerName = player, action = action)
         val json = gson.toJson(message)
 
-        // 📤 SENDEN an den Server
-        session.sendText("/app/getJob", json)
-
-        // 📥 SUBSCRIBE auf Antwort
         scope.launch {
             try {
-                session.subscribeText("/topic/getJob").collect { msg ->
-                    val output = gson.fromJson(msg, JobMessage::class.java)
-                    callback("🎲 ${output.playerName}: ${output.bezeichnung}: ${output.gehalt}:${output.bonusgehalt}:${output.benoetigtHochschulreife}:${output.isTaken}: (${output.timestamp})")
-                }
+                session.sendText("/app/getJob", json)
+                callback("📤 Job-Anfrage gesendet")
             } catch (e: Exception) {
-                callback("❌ Job nicht verfügbar: ${e.message}")
+                callback("❌ Fehler beim Senden der Job-Anfrage: ${e.message}")
             }
         }
     }
-
 
     fun sendChat(player: String, text: String) {
         if (!::session.isInitialized) {
