@@ -1,33 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-        <androidx.constraintlayout.widget.ConstraintLayout
-            xmlns:android="http://schemas.android.com/apk/res/android"
-            xmlns:app="http://schemas.android.com/apk/res-auto"
-            xmlns:tools="http://schemas.android.com/tools"
-            android:id="@+id/main_layout"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:padding="16dp"
-            tools:context="at.aau.serg.websocketbrokerdemo.MainActivity">
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/background_mainactivity"
+    android:padding="16dp"
+    tools:context=".MainActivity">
 
-            <Button
-                android:id="@+id/connectbtn"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="🔌 Verbinden"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                android:layout_marginTop="40dp"/>
+    <!-- Verbinden -->
 
-            <Button
-                android:id="@+id/hellobtn"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="🎲 Spielzug senden"
-                app:layout_constraintTop_toBottomOf="@+id/connectbtn"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                android:layout_marginTop="12dp" />
+    <!-- Spielzug senden -->
+
+    <Button
+        android:id="@+id/connectbtn"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="64dp"
+        android:background="@drawable/rounded_blue_button"
+        android:gravity="center"
+        android:text="🔌 Verbinden"
+        android:textAlignment="center"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/hellobtn"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="🎲 Spielzug senden"
+        android:textSize="20sp"
+        android:textAlignment="center"
+        android:gravity="center"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@id/connectbtn"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/rounded_blue_button"
+        android:textColor="#FFFFFF" />
 
             <Button
                 android:id="@+id/jsonbtn"
@@ -82,5 +100,22 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 tools:listitem="@android:layout/simple_list_item_1" />
+    <!-- Statusanzeige mit Hintergrund -->
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Status: Getrennt"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:background="@drawable/status_background"
+        android:textAlignment="center"
+        android:gravity="center"
+        android:padding="12dp"
+        app:layout_constraintTop_toBottomOf="@id/hellobtn"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="32dp" />
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

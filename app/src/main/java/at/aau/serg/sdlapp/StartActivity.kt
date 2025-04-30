@@ -1,4 +1,4 @@
-package at.aau.serg.websocketbrokerdemo
+package at.aau.serg.sdlapp
 
 import android.content.Intent
 import android.os.Bundle

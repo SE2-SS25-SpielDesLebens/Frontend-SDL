@@ -15,4 +15,5 @@
     <color name="status_connected">#4CAF50</color>
     <color name="status_disconnected">#F44336</color>
     <color name="status_error">#FF9800</color>
+    <color name="action_card_blue">#4249BD</color>
 </resources>

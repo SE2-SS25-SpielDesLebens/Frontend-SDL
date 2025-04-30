@@ -1,4 +1,4 @@
-package at.aau.serg.websocketbrokerdemo.model
+package at.aau.serg.sdlapp.model
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
