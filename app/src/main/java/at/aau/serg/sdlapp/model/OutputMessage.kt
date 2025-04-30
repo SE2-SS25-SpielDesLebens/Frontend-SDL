@@ -1,4 +1,4 @@
-package at.aau.serg.websocketbrokerdemo.model
+package at.aau.serg.sdlapp.model
 
 data class OutputMessage(
     val playerName: String,

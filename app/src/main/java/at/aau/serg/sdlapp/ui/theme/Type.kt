@@ -1,4 +1,4 @@
-package at.aau.serg.websocketbrokerdemo.ui.theme
+package at.aau.serg.sdlapp.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

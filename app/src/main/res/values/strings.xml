@@ -5,4 +5,6 @@
     <string name="title_activity_connection_view">ConnectionView</string>
     <string name="title_activity_view">view</string>
     <string name="title_activity_main2">MainActivity2</string>
+    <string name="action_card_image_descr">Action Card Image</string>
+    <string name="action_card_title">AKTIONSKARTE</string>
 </resources>
