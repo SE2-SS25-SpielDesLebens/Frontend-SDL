@@ -47,59 +47,6 @@
         android:background="@drawable/rounded_blue_button"
         android:textColor="#FFFFFF" />
 
-            <Button
-                android:id="@+id/jsonbtn"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="💬 Chat senden"
-                app:layout_constraintTop_toBottomOf="@+id/hellobtn"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                android:layout_marginTop="12dp" />
-
-            <Button
-                android:id="@+id/jobRequestBtn"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="📥 Job anfordern"
-                app:layout_constraintTop_toBottomOf="@+id/jsonbtn"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                android:layout_marginTop="12dp" />
-
-            <Button
-                android:id="@+id/jobReleaseBtn"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="📤 Job freigeben"
-                app:layout_constraintTop_toBottomOf="@+id/jobRequestBtn"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                android:layout_marginTop="12dp" />
-
-
-    <TextView
-        android:id="@+id/statusText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="132dp"
-        android:text="Status: Getrennt"
-        android:textColor="#444"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/jsonbtn" />
-
-    <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/messageList"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:contentDescription="Liste der Nachrichten"
-                app:layout_constraintTop_toBottomOf="@+id/statusText"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                tools:listitem="@android:layout/simple_list_item_1" />
     <!-- Statusanzeige mit Hintergrund -->
     <TextView
         android:id="@+id/statusText"

@@ -1,11 +1,7 @@
-package at.aau.serg.websocketbrokerdemo.network
+package at.aau.serg.sdlapp.network
 
 import android.os.Handler
 import android.os.Looper
-import at.aau.serg.websocketbrokerdemo.Callbacks
-import at.aau.serg.websocketbrokerdemo.model.JobMessage
-import at.aau.serg.websocketbrokerdemo.model.OutputMessage
-import at.aau.serg.websocketbrokerdemo.model.StompMessage
 import at.aau.serg.sdlapp.model.OutputMessage
 import at.aau.serg.sdlapp.model.StompMessage
 import com.google.gson.Gson
@@ -18,9 +14,7 @@ import org.hildan.krossbow.stomp.sendText
 import org.hildan.krossbow.stomp.subscribeText
 import org.hildan.krossbow.websocket.okhttp.OkHttpWebSocketClient
 
-private const val WEBSOCKET_URI = "ws://10.0.2.2:8080/websocket-broker/websocket" // Für Emulator! – anpassen bei echtem Gerät
-//private const val WEBSOCKET_URI = "ws://se2-demo.aau.at:53217/websocket-broker/websocket"
-
+private const val WEBSOCKET_URI = "ws://se2-demo.aau.at:53217/websocket-broker/websocket"
 
 class MyStomp(private val callback: (String) -> Unit) {
 
@@ -46,23 +40,6 @@ class MyStomp(private val callback: (String) -> Unit) {
                     sendToMainThread("💬 ${output.playerName}: ${output.content} (${output.timestamp})")
                 }
 
-                // Job-Abo (einmalig)
-                launch {
-                    session.subscribeText("/topic/getJob").collect { msg ->
-                        val job = gson.fromJson(msg, JobMessage::class.java)
-                        val formatted = """
-                            🎲 Spieler: ${job.playerName}
-                            💼 Beruf: ${job.title}
-                            💰 Gehalt: ${job.salary} €
-                            🎁 Bonus: ${job.bonusSalary} €
-                            🎓 Benötigt Matura: ${if (job.requiresHighSchoolDiploma) "Ja" else "Nein"}
-                            🔒 Bereits vergeben: ${if (job.isTaken) "Ja, an ${job.takenByPlayerName ?: "unbekannt"}" else "Nein"}
-                            🕒 Zeitpunkt: ${job.timestamp}
-                        """.trimIndent()
-                        callback(formatted)
-                    }
-                }
-
             } catch (e: Exception) {
                 sendToMainThread("❌ Fehler beim Verbinden: ${e.message}")
             }
@@ -82,25 +59,6 @@ class MyStomp(private val callback: (String) -> Unit) {
                 sendToMainThread("✅ Spielzug gesendet")
             } catch (e: Exception) {
                 sendToMainThread("❌ Fehler beim Senden (move): ${e.message}")
-            }
-        }
-    }
-
-    fun getJob(player: String, action: String) {
-        if (!::session.isInitialized) {
-            callback("❌ Fehler: Verbindung nicht aktiv!")
-            return
-        }
-
-        val message = StompMessage(playerName = player, action = action)
-        val json = gson.toJson(message)
-
-        scope.launch {
-            try {
-                session.sendText("/app/getJob", json)
-                callback("📤 Job-Anfrage gesendet")
-            } catch (e: Exception) {
-                callback("❌ Fehler beim Senden der Job-Anfrage: ${e.message}")
             }
         }
     }
