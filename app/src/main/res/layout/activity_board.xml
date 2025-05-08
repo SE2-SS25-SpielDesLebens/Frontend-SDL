@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     xmlns:zoom="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -13,7 +14,8 @@
         android:background="@android:color/transparent"
         zoom:zoomEnabled="true"
         zoom:minZoom="1.4"
-        zoom:maxZoom="5.0">
+        zoom:maxZoom="5.0"
+        tools:ignore="MissingClass">
 
         <!-- Brett + Figur im gemeinsamen Container -->
         <FrameLayout
@@ -50,4 +52,16 @@
         android:src="@drawable/dice"
         android:contentDescription="Würfeln"
         android:scaleType="centerInside" />
+
+
+    <!-- SpielerStatus Button -->
+    <ImageButton
+        android:id="@+id/btnShowStats"
+        android:layout_width="64dp"
+        android:layout_height="62dp"
+        android:layout_alignParentEnd="true"
+        android:contentDescription="SpielerStatus"
+        android:src="@drawable/spielericon"
+        android:layout_margin="16dp" />
+
 </FrameLayout>

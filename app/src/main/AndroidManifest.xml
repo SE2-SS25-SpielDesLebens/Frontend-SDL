@@ -9,19 +9,21 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@drawable/splash_logo"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@drawable/splash_logo"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
 
-        <!-- ✅ SplashActivity ist Launcher und braucht exported=true -->
+
+        <!-- Startscreen im Querformat -->
         <activity
-            android:name="at.aau.serg.sdlapp.ui.SplashActivity"
+            android:name="at.aau.serg.sdlapp.ui.StartActivity"
             android:exported="true"
-            android:theme="@style/Theme.SDLApp.Splash"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.MyApplication"
             android:screenOrientation="landscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -29,43 +31,21 @@
             </intent-filter>
         </activity>
 
-        <!-- ✅ StartActivity: exported=false (keine externe Aufrufbarkeit nötig) -->
-        <activity
-            android:name="at.aau.serg.sdlapp.ui.StartActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MyApplication"
-            android:screenOrientation="landscape" />
-
-        <!-- ✅ SettingsActivity -->
         <activity
             android:name="at.aau.serg.sdlapp.ui.SettingsActivity"
             android:exported="false"
             android:label="Einstellungen"
+            android:screenOrientation="landscape"
             android:theme="@style/Theme.MyApplication"
-            android:screenOrientation="landscape" />
+            tools:ignore="MissingClass" />
 
-        <!-- ✅ BoardActivity -->
         <activity
-            android:name="at.aau.serg.sdlapp.ui.BoardActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MyApplication"
-            android:screenOrientation="landscape" />
-
-        <!-- JobCardActivity muss exakt im ui-Package stehen -->
-        <activity
-            android:name="at.aau.serg.sdlapp.ui.JobCardActivity"
-            android:exported="false"
-            android:label="Job Screen"
+            android:name=".ui.PlayerStatsActivity"
+            android:exported="true"
+            android:label="Spielerübersicht"
             android:screenOrientation="landscape"
             android:theme="@style/Theme.MyApplication" />
 
-        <!-- (Optional) JobSelectionActivity, falls du sie starten möchtest -->
-        <activity
-            android:name="at.aau.serg.sdlapp.ui.JobSelectionActivity"
-            android:exported="false"
-            android:label="Job Auswahl"
-            android:screenOrientation="landscape"
-            android:theme="@style/Theme.MyApplication" />
 
     </application>
 

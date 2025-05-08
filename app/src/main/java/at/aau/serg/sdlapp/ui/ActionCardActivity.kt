@@ -11,6 +11,7 @@ import at.aau.serg.sdlapp.network.MyStomp
 import at.aau.serg.sdlapp.model.game.ActionCard
 import com.google.gson.Gson
 
+
 class ActionCardActivity : ComponentActivity(){
 
     private lateinit var stomp: MyStomp
