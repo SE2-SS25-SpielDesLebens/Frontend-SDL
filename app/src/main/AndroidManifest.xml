@@ -15,9 +15,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication"
         android:usesCleartextTraffic="true"
-        tools:targetApi="31">
-
-        <!-- ✅ SplashActivity ist Launcher und braucht exported=true -->
+        tools:targetApi="31">        <!-- ✅ SplashActivity ist Launcher und braucht exported=true -->
         <activity
             android:name="at.aau.serg.sdlapp.ui.SplashActivity"
             android:exported="true"
@@ -28,14 +26,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <!-- ✅ StartActivity: exported=false (keine externe Aufrufbarkeit nötig) -->
         <activity
             android:name="at.aau.serg.sdlapp.ui.StartActivity"
             android:exported="false"
             android:theme="@style/Theme.MyApplication"
             android:screenOrientation="landscape" />
-
         <!-- ✅ SettingsActivity -->
         <activity
             android:name="at.aau.serg.sdlapp.ui.SettingsActivity"
@@ -43,13 +39,18 @@
             android:label="Einstellungen"
             android:theme="@style/Theme.MyApplication"
             android:screenOrientation="landscape" />
-
         <!-- ✅ BoardActivity -->
         <activity
             android:name="at.aau.serg.sdlapp.ui.BoardActivity"
             android:exported="false"
             android:theme="@style/Theme.MyApplication"
             android:screenOrientation="landscape" />
+        <!-- ConnectionTestActivity zum Testen der Backend-Kommunikation -->
+        <activity
+            android:name="at.aau.serg.sdlapp.ConnectionTestActivity"
+            android:exported="false"
+            android:label="Verbindungstest"
+            android:theme="@style/Theme.MyApplication" />
 
     </application>
 

@@ -9,6 +9,8 @@ espressoCore = "3.6.1"
 krossbowStompCore = "7.0.0"
 krossbowWebsocketBuiltin = "7.0.0"
 krossbowWebsocketOkhttp = "7.0.0"
+krossbowStompJackson = "7.0.0" # Neue Version für Jackson-Modul
+krossbowWebsocketSockjs = "7.0.0" # Neue Version für SockJS-Modul
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.10.1"
 composeBom = "2025.04.00"
@@ -45,6 +47,8 @@ androidx-constraintlayout = { group = "androidx.constraintlayout", name = "const
 krossbow-stomp-core = { module = "org.hildan.krossbow:krossbow-stomp-core", version.ref = "krossbowStompCore" }
 krossbow-websocket-builtin = { module = "org.hildan.krossbow:krossbow-websocket-builtin", version.ref = "krossbowWebsocketBuiltin" }
 krossbow-websocket-okhttp = { module = "org.hildan.krossbow:krossbow-websocket-okhttp", version.ref = "krossbowWebsocketOkhttp" }
+krossbow-stomp-jackson = { module = "org.hildan.krossbow:krossbow-stomp-jackson", version.ref = "krossbowStompJackson" }
+krossbow-websocket-sockjs = { module = "org.hildan.krossbow:krossbow-websocket-sockjs", version.ref = "krossbowWebsocketSockjs" }
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 zoomlayout = { group = "com.otaliastudios", name = "zoomlayout", version.ref = "zoomlayout" }

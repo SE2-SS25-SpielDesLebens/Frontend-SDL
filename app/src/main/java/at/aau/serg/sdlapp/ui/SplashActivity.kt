@@ -7,7 +7,7 @@ import android.os.Looper
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.ImageView
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -15,7 +15,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.updateLayoutParams
 import at.aau.serg.sdlapp.R
 
-class SplashActivity : ComponentActivity() {
+class SplashActivity : AppCompatActivity() {
 
     private val SPLASH_DELAY = 2000L // 2 Sekunden
 
