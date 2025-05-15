@@ -83,6 +83,18 @@
             android:screenOrientation="landscape"
             android:theme="@style/Theme.SDLApp.HomeScreen"/>
 
+        <activity android:name=".ui.JobCardActivity"
+            android:exported="false"
+            android:label="JobCard"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.SDLApp.HomeScreen"/>
+
+        <activity android:name=".ui.WheelActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MyApplication"
+            android:screenOrientation="landscape"
+            android:label="Wheel"/>
+
 
     </application>
 

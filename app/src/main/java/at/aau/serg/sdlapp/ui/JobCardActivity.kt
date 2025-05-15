@@ -39,7 +39,6 @@ class JobCardActivity : ComponentActivity() {
 
         btnRequestJobs.setOnClickListener {
             stomp.subscribeJobs(gameId, playerName) { jobs ->
-                // hier UI befüllen oder direkt zur Auswahl-Activity navigieren
                 val jobsJson = Gson().toJson(jobs)
                 Intent(this, JobSelectionActivity::class.java).apply {
                     putExtra("gameId", gameId)
@@ -49,7 +48,6 @@ class JobCardActivity : ComponentActivity() {
                     startActivity(this)
                 }
             }
-            // 3) Abschließend die eigentliche Anfrage ans Backend schicken
             stomp.requestJobs(gameId, playerName, hasDegree)
         }
     }

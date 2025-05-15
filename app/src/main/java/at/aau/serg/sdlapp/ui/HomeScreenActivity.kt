@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -117,7 +119,6 @@ class HomeScreenActivity : ComponentActivity() {
             Button(
                 onClick = {
                     showTextField = true
-
                 },
                 modifier = Modifier
                     .padding(8.dp)
@@ -179,6 +180,33 @@ class HomeScreenActivity : ComponentActivity() {
                         )
 
                     )
+                }
+            }
+            Row(modifier = Modifier.fillMaxSize()) {
+
+                Button(
+                    onClick = {
+                        val intent = Intent(this@HomeScreenActivity, JobCardActivity::class.java)
+                        intent.putExtra("player", playerName)
+                        startActivity(intent)
+                    },
+                    modifier = Modifier
+                        .padding(8.dp)
+                ) {
+                    Text("Job Activity")
+                }
+
+                Button(
+                    onClick = {
+                        val dice = (1..10).random()
+                        val intent = Intent(this@HomeScreenActivity, WheelActivity::class.java)
+                        intent.putExtra("dice", dice)
+                        startActivity(intent)
+                    },
+                    modifier = Modifier
+                        .padding(8.dp)
+                ){
+                    Text("Am Rad drehen")
                 }
             }
 
