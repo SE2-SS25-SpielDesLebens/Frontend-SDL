@@ -182,19 +182,8 @@ class HomeScreenActivity : ComponentActivity() {
                     )
                 }
             }
-            Row(modifier = Modifier.fillMaxSize()) {
-
-                Button(
-                    onClick = {
-                        val intent = Intent(this@HomeScreenActivity, JobCardActivity::class.java)
-                        intent.putExtra("player", playerName)
-                        startActivity(intent)
-                    },
-                    modifier = Modifier
-                        .padding(8.dp)
-                ) {
-                    Text("Job Activity")
-                }
+            Row(modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.Center) {
 
                 Button(
                     onClick = {
