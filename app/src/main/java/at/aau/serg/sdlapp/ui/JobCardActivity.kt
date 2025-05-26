@@ -13,14 +13,18 @@ class JobCardActivity : ComponentActivity() {
 
     private lateinit var stomp: MyStomp
     private lateinit var playerName: String
-    private val gameId: Int = 1
-    private val hasDegree = false
+    private var gameId: Int = -1
+    private val hasDegree: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_job_card)
 
+        // Spielername und Spiel-ID aus Intent
         playerName = intent.getStringExtra("playerName") ?: "Spieler"
+        gameId = intent.getIntExtra("gameId", -1)
+
+        // STOMP-Verbindung initialisieren
         stomp = MyStomp { showToast(it) }
 
         findViewById<Button>(R.id.btnConnect).setOnClickListener {
