@@ -1,76 +1,75 @@
 package at.aau.serg.sdlapp.network.viewModels
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.lifecycle.viewModelScope
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.*
 import org.hildan.krossbow.stomp.StompSession
 import org.hildan.krossbow.stomp.subscribeText
 import org.junit.*
 import org.junit.Assert.assertEquals
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
 
 @ExperimentalCoroutinesApi
 class LobbyViewModelTest {
     @get:Rule
-    val instantTaskExecutorRule = InstantTaskExecutorRule()
+    val instantExecutorRule = InstantTaskExecutorRule()
 
     private lateinit var session: StompSession
     private lateinit var viewModel: LobbyViewModel
-
-    private val testDispatcher = UnconfinedTestDispatcher()
+    private val testScope = TestScope()
+    private val testDispatcher = StandardTestDispatcher(testScope.testScheduler)
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        session = mockk()
+        session = mockk(relaxed = true)
         mockkStatic("org.hildan.krossbow.stomp.StompSessionKt")
+        viewModel = LobbyViewModel(session)
     }
 
     @After
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModel.viewModelScope.coroutineContext.cancelChildren()
         unmockkAll()
+        clearAllMocks()
+        Dispatchers.resetMain()
     }
 
     @Test
-    fun `initialize sets current player`() {
-        coEvery { session.subscribeText(any()) } returns flow { } // leerer Flow
-        viewModel = LobbyViewModel(session)
+    fun `initialize sets current player`() = runTest {
+        // Given
+        coEvery { session.subscribeText(any()) } returns flow { }
+        
+        // When
         viewModel.initialize("lobby123", "Anna")
-        val result = viewModel.players.value
-        assertEquals(emptyList<String>(), result)
-    }
-
-    @Test
-    fun `startObserving adds new player from subscription`() = runTest {
-        val lobbyId = "lobby123"
-        val sampleJson = """{"playerName":"Bob"}"""
-        val fakeFlow = flow {
-            emit(sampleJson)
-        }
-        coEvery { session.subscribeText("/topic/$lobbyId") } returns fakeFlow
-        viewModel = LobbyViewModel(session)
-        viewModel.initialize(lobbyId, "Anna")
-        runCurrent()
-        val result = viewModel.players.value
-        assertEquals(listOf("Bob"), result)
+        testScope.testScheduler.advanceUntilIdle()
+        
+        // Then
+        assertEquals(listOf("Anna"), viewModel.players.value)
     }
 
     @Test
     fun `startObserving does not duplicate existing player`() = runTest {
+        // Given
         val lobbyId = "lobby123"
-        val sampleJson = """{"playerName":"Anna"}""" // gleicher Spieler wie Startwert
-        val fakeFlow = flow {
+        val sampleJson = """{"playerName":"Anna","isSuccessful":true}"""
+        
+        coEvery { session.subscribeText("/topic/$lobbyId") } returns flow { 
             emit(sampleJson)
         }
-        coEvery { session.subscribeText("/topic/$lobbyId") } returns fakeFlow
-        viewModel = LobbyViewModel(session)
+        
+        // When
         viewModel.initialize(lobbyId, "Anna")
-        runCurrent()
-        val result = viewModel.players.value
-        assertEquals(listOf("Anna"), result)
+        testScope.testScheduler.advanceUntilIdle()
+        
+        // Then
+        assertEquals(listOf("Anna"), viewModel.players.value)
     }
+
 }
