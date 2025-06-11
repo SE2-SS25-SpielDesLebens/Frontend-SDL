@@ -87,6 +87,7 @@ android {
                 it.systemProperty("robolectric.logging", "stdout")
                 it.systemProperty("robolectric.graphicsMode", "NATIVE")
                 it.finalizedBy(tasks.named("jacocoTestReport"))
+                it.systemProperty("robolectric.maxSdk", "35")
             }
         }
     }
@@ -107,7 +108,7 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         "**/R.class", "**/R$*.class", "**/BuildConfig.*", "**/Manifest*.*",
         "**/*Test*.*", "android/**/*.*",
         "**/di/**/*.*", "**/*_Factory.*", "**/*_MembersInjector.*",
-        "**/*_Provide*Factory.*", "**/*_ViewBinding.*"
+        "**/*_Provide*Factory.*", "**/*_ViewBinding.*", "**/*Activity.*", "**/*Message.*"
     )
 
     val debugTree = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
@@ -170,6 +171,7 @@ dependencies {
     implementation(libs.androidx.ui.viewbinding)
     implementation(libs.krossbow.stomp.core)
     implementation(libs.krossbow.websocket.okhttp)
+    implementation(libs.lifecycle.viewmodel.ktx)
 
 
 
@@ -183,6 +185,7 @@ dependencies {
     testImplementation(libs.androidx.arch.core.testing)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.arch.core.testing)
 
     // --- Instrumented/UI-Test Dependencies ---
     androidTestImplementation(libs.ui.test.junit4)

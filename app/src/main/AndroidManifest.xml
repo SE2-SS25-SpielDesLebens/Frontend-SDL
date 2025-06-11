@@ -135,13 +135,21 @@
             android:screenOrientation="landscape"
             android:theme="@style/Theme.MyApplication" />
 
+
         <!-- ✅ Endscreen Activity -->
         <activity
             android:name="at.aau.serg.sdlapp.ui.activity.EndScreenActivity"
             android:exported="false"
             android:screenOrientation="landscape"
             android:theme="@style/Theme.MyApplication" />
-
+        
+      <!-- ✅ Wheel Activity -->
+        <activity
+            android:name="at.aau.serg.sdlapp.ui.activity.WheelActivity"
+            android:exported="false"
+            android:label="Glücksrad"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.MyApplication" />
 
     </application>
 

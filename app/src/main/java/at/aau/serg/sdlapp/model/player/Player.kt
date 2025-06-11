@@ -15,7 +15,7 @@ data class Player(
     var children: Int = 0,
     var hasEducation: Boolean = false,
     var investments: Int = 0,
-    val salary: Int = 0,                   // Standardwert
+    var salary: Int = 0,                   // Standardwert
     val relationship: Boolean = false,
 ) {
     // Farbe basierend auf der ID bestimmen

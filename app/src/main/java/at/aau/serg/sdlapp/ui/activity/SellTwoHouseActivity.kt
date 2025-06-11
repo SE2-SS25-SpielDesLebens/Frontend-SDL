@@ -1,5 +1,7 @@
 package at.aau.serg.sdlapp.ui.activity
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
@@ -40,7 +42,7 @@ class SellTwoHouseActivity : ComponentActivity() {
         rightHouse = houses[1]
 
         // STOMP-Verbindung initialisieren
-        stomp = StompConnectionManager( { msg -> showToast(msg) })
+        stomp = StompConnectionManager ({ msg -> showToast(msg) })
         stomp.connectAsync(playerName) { connected ->
             if (!connected) showToast("Verbindung fehlgeschlagen")
         }
@@ -57,16 +59,43 @@ class SellTwoHouseActivity : ComponentActivity() {
         findViewById<TextView>(R.id.tvSalePriceRight).text = "Verkauf: ${rightHouse.verkaufspreisRot}"
         findViewById<TextView>(R.id.tvSalePriceRightSecond).text = "Verkauf: ${rightHouse.verkaufspreisSchwarz}"
 
-        // Verkaufs-Buttons
+        // Linker Verkaufs-Button
         findViewById<Button>(R.id.btnLeftBuy).setOnClickListener {
-            stomp.finalizeHouseAction(gameId, playerName, leftHouse)
-            showToast("Linker Hausverkauf gesendet")
+            val randomNumber = (1..10).random()
+            val isEven = randomNumber % 2 == 0
+
+            val modifiedHouse = leftHouse.copy(sellPrice = isEven)
+
+            // Finalisierungsanfrage senden
+            stomp.finalizeHouseAction(gameId, playerName, modifiedHouse)
+
+            // Rad anzeigen
+            val intent = Intent(this, WheelActivity::class.java)
+            intent.putExtra("dice", randomNumber)
+            startActivity(intent)
+
+            // Result zurück an HouseCardFunctionalityActivity
+            setResult(Activity.RESULT_OK)
             finish()
         }
 
+        // Rechter Verkaufs-Button
         findViewById<Button>(R.id.btnRightBuy).setOnClickListener {
-            stomp.finalizeHouseAction(gameId, playerName, rightHouse)
-            showToast("Rechter Hausverkauf gesendet")
+            val randomNumber = (1..10).random()
+            val isEven = randomNumber % 2 == 0
+
+            val modifiedHouse = rightHouse.copy(sellPrice = isEven)
+
+            // Finalisierungsanfrage senden
+            stomp.finalizeHouseAction(gameId, playerName, modifiedHouse)
+
+            // Rad anzeigen
+            val intent = Intent(this, WheelActivity::class.java)
+            intent.putExtra("dice", randomNumber)
+            startActivity(intent)
+
+            // Result zurück an HouseCardFunctionalityActivity
+            setResult(Activity.RESULT_OK)
             finish()
         }
     }

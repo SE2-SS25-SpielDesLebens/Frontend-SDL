@@ -1,5 +1,6 @@
 package at.aau.serg.sdlapp.ui.activity
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
@@ -16,6 +17,11 @@ class HouseCardFunctionalityActivity : ComponentActivity() {
     private lateinit var playerName: String
     private var gameId: Int = -1
 
+    companion object {
+        private const val REQUEST_CODE_SELL = 1001
+        private const val REQUEST_CODE_BUY  = 1002
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_house_functionality)
@@ -26,7 +32,7 @@ class HouseCardFunctionalityActivity : ComponentActivity() {
         gameId = intent.getIntExtra("gameId", gameId)
 
         // STOMP-Verbindung initialisieren
-        stomp = StompConnectionManager( { msg -> showToast(msg) })
+        stomp = StompConnectionManager ({ msg -> showToast(msg) })
         stomp.connectAsync(playerName) { connected ->
             if (!connected) showToast("Verbindung fehlgeschlagen")
         }
@@ -52,25 +58,24 @@ class HouseCardFunctionalityActivity : ComponentActivity() {
      * und in die BuyHouseActivity wechseln.
      */
     private fun subscribeAndShowBuyScreen() {
-        // Subscription auf Optionen
         stomp.subscribeHouses(gameId, playerName) { houses ->
             runOnUiThread {
                 if (houses.isEmpty()) {
                     showToast("Keine Häuser verfügbar")
                     return@runOnUiThread
                 }
-                // Starte BuyHouseActivity mit den empfangenen Häusern
+                // Starte BuyHouseActivity → JETZT mit startActivityForResult
                 val intent = Intent(this, BuyHouseActivity::class.java).apply {
                     putExtra("playerName", playerName)
                     putExtra("gameId", gameId)
                     putExtra("houseList", Gson().toJson(houses))
                 }
-                startActivity(intent)
+                startActivityForResult(intent, REQUEST_CODE_BUY)  // NEU
             }
         }
-        // Anfrage senden
         stomp.buyHouse(gameId, playerName)
     }
+
 
     /**
      * Sell-Flow: Erst abonnieren, dann Verkaufs-Anfrage senden
@@ -93,6 +98,7 @@ class HouseCardFunctionalityActivity : ComponentActivity() {
 
     /**
      * Generische Navigation zu den Sell-Screens.
+     * --> jetzt mit startActivityForResult, damit wir später finish() machen können.
      */
     private fun launchSellScreen(layoutName: String, houses: List<HouseMessage>) {
         val target = when (layoutName) {
@@ -102,13 +108,26 @@ class HouseCardFunctionalityActivity : ComponentActivity() {
             else                        -> null
         }
         target?.let {
-            Intent(this, it).apply {
+            val intent = Intent(this, it).apply {
                 putExtra("playerName", playerName)
                 putExtra("gameId", gameId)
                 putExtra("housesJson", Gson().toJson(houses))
-                startActivity(this)
             }
+            startActivityForResult(intent, REQUEST_CODE_SELL)
         } ?: showToast("Screen nicht gefunden: $layoutName")
+    }
+
+    /**
+     * Ergebnisbehandlung für Sell-Screens.
+     * Wenn sie mit RESULT_OK zurückkommen → diese Activity beenden.
+     */
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if ((requestCode == REQUEST_CODE_SELL || requestCode == REQUEST_CODE_BUY) && resultCode == Activity.RESULT_OK) {
+            // Sell- oder Buy-Screen fertig → wir beenden uns selbst
+            finish()
+        }
     }
 
     private fun showToast(message: String) {

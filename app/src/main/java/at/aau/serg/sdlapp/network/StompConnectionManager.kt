@@ -30,9 +30,11 @@ import org.hildan.krossbow.stomp.subscribeText
 import org.hildan.krossbow.websocket.okhttp.OkHttpWebSocketClient
 import org.json.JSONException
 import org.json.JSONObject
-//
+
+
+
 private const val WEBSOCKET_URI = "ws://se2-demo.aau.at:53217/websocket-broker/websocket"
-//private const val WEBSOCKET_URI = "ws://192.168.8.140:8080/websocket-broker/websocket" //for testing
+//private const val WEBSOCKET_URI = "ws://10.0.2.2:8080/websocket-broker/websocket" //for testing
 private const val NO_CONNECTION_MESSAGE = "Keine Verbindung aktiv"
 private const val NO_CONNECTION_SUBSCRIPTION_MESSAGE = "❌ Verbindung nicht aktiv – Subscription fehlgeschlagen"
 
@@ -55,10 +57,12 @@ class StompConnectionManager(
     var onPlayerListReceived: ((List<Int>) -> Unit)? = null
     var onBoardDataReceived: ((List<at.aau.serg.sdlapp.model.board.Field>) -> Unit)? = null
 
+
     // Reconnect-Logik
     private var shouldReconnect = true
     private val maxReconnectAttempts = 5
     private var reconnectAttempts = 0
+
 
     /**
      * Gibt die aktuelle Session zurück, falls verbunden, sonst null.

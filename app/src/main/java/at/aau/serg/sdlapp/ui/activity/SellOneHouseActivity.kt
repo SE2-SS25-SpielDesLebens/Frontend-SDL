@@ -1,5 +1,7 @@
 package at.aau.serg.sdlapp.ui.activity
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
@@ -51,8 +53,20 @@ class SellOneHouseActivity : ComponentActivity() {
 
         // Verkaufs-Button
         findViewById<Button>(R.id.btnBuy).setOnClickListener {
-            stomp.finalizeHouseAction(gameId, playerName, house)
-            showToast("Hausverkauf gesendet")
+            val randomNumber = (1..10).random()
+            val isEven = randomNumber % 2 == 0
+
+            // Neues HouseMessage mit gesetztem sellPrice (true bei gerade)
+            val modifiedHouse = house.copy(sellPrice = isEven)
+
+            // Finalisierungsanfrage sofort senden
+            stomp.finalizeHouseAction(gameId, playerName, modifiedHouse)
+
+            // Jetzt WheelActivity anzeigen → als reine Info → KEIN finish!
+            val intent = Intent(this, WheelActivity::class.java)
+            intent.putExtra("dice", randomNumber)
+            startActivity(intent)
+            setResult(Activity.RESULT_OK)
             finish()
         }
     }

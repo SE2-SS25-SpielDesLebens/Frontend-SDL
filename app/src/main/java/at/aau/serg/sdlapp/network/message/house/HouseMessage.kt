@@ -8,5 +8,6 @@ data class HouseMessage(
     val verkaufspreisSchwarz: Int,
     val isTaken: Boolean,
     val assignedToPlayerName: String?,
-    val gameId: Int
+    val gameId: Int,
+    val sellPrice: Boolean
 )

@@ -1,5 +1,7 @@
 package at.aau.serg.sdlapp.ui.activity
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
@@ -43,7 +45,7 @@ class SellThreeHouseActivity : ComponentActivity() {
         bottomRightHouse= houses[2]
 
         // STOMP-Verbindung initialisieren
-        stomp = StompConnectionManager( { msg -> showToast(msg) })
+        stomp = StompConnectionManager ({ msg -> showToast(msg) })
         stomp.connectAsync(playerName) { connected ->
             if (!connected) showToast("Verbindung fehlgeschlagen")
         }
@@ -54,9 +56,7 @@ class SellThreeHouseActivity : ComponentActivity() {
         findViewById<TextView>(R.id.tvSalePriceCenterRed).text          = "Verkauf: ${centerHouse.verkaufspreisRot}"
         findViewById<TextView>(R.id.tvSalePriceCenterBlack).text        = "Verkauf: ${centerHouse.verkaufspreisSchwarz}"
         findViewById<Button>(R.id.btnCenterSell).setOnClickListener {
-            stomp.finalizeHouseAction(gameId, playerName, centerHouse)
-            showToast("Zentrales Hausverkauf gesendet")
-            finish()
+            performSell(centerHouse)
         }
 
         // --- Bottom Left House UI ---
@@ -65,9 +65,7 @@ class SellThreeHouseActivity : ComponentActivity() {
         findViewById<TextView>(R.id.tvSalePriceBottomLeftRed).text      = "Verkauf: ${bottomLeftHouse.verkaufspreisRot}"
         findViewById<TextView>(R.id.tvSalePriceBottomLeftBlack).text    = "Verkauf: ${bottomLeftHouse.verkaufspreisSchwarz}"
         findViewById<Button>(R.id.btnBottomLeftSell).setOnClickListener {
-            stomp.finalizeHouseAction(gameId, playerName, bottomLeftHouse)
-            showToast("Linkes unteres Hausverkauf gesendet")
-            finish()
+            performSell(bottomLeftHouse)
         }
 
         // --- Bottom Right House UI ---
@@ -76,10 +74,31 @@ class SellThreeHouseActivity : ComponentActivity() {
         findViewById<TextView>(R.id.tvSalePriceBottomRightRed).text     = "Verkauf: ${bottomRightHouse.verkaufspreisRot}"
         findViewById<TextView>(R.id.tvSalePriceBottomRightBlack).text   = "Verkauf: ${bottomRightHouse.verkaufspreisSchwarz}"
         findViewById<Button>(R.id.btnBottomRightSell).setOnClickListener {
-            stomp.finalizeHouseAction(gameId, playerName, bottomRightHouse)
-            showToast("Rechtes unteres Hausverkauf gesendet")
-            finish()
+            performSell(bottomRightHouse)
         }
+    }
+
+    /**
+     * Gemeinsame Methode → Haus verkaufen + Rad anzeigen + Result setzen.
+     */
+    private fun performSell(house: HouseMessage) {
+        val randomNumber = (1..10).random()
+        val isEven = randomNumber % 2 == 0
+
+        // Neues HouseMessage mit gesetztem sellPrice (true bei gerade)
+        val modifiedHouse = house.copy(sellPrice = isEven)
+
+        // Finalisierungsanfrage senden
+        stomp.finalizeHouseAction(gameId, playerName, modifiedHouse)
+
+        // WheelActivity anzeigen
+        val intent = Intent(this, WheelActivity::class.java)
+        intent.putExtra("dice", randomNumber)
+        startActivity(intent)
+
+        // Result zurück an HouseCardFunctionalityActivity
+        setResult(Activity.RESULT_OK)
+        finish()
     }
 
     private fun showToast(message: String) {

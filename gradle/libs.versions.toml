@@ -39,6 +39,7 @@ androidxTestExt = "1.1.5"
 archCore = "2.2.0"
 androidxTestRunner = "1.5.2"
 espresso = "3.5.1"
+lifecycle = "2.7.0"
 
 [libraries]
 accompanist-pager = { module = "com.google.accompanist:accompanist-pager", version.ref = "accompanistPager" }
@@ -88,7 +89,7 @@ androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version
 androidx-arch-core-testing = { group = "androidx.arch.core", name = "core-testing", version.ref = "archCore" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
 androidx-espresso-intents = { group = "androidx.test.espresso", name = "espresso-intents", version.ref = "espresso" }
-
+lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
 
 [plugins]
 android-application = { id = "com.android.application", version = "8.9.1" }

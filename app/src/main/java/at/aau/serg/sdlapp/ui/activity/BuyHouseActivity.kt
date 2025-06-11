@@ -1,5 +1,6 @@
 package at.aau.serg.sdlapp.ui.activity
 
+import android.app.Activity
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
@@ -48,6 +49,7 @@ class BuyHouseActivity : ComponentActivity() {
             setOnClickListener {
                 showToast("Haus ausgewählt: ${leftHouse.bezeichnung}")
                 stomp.finalizeHouseAction(gameId, playerName, leftHouse)
+                setResult(Activity.RESULT_OK)
                 finish()
             }
         }
@@ -61,6 +63,7 @@ class BuyHouseActivity : ComponentActivity() {
             setOnClickListener {
                 showToast("Haus ausgewählt: ${rightHouse.bezeichnung}")
                 stomp.finalizeHouseAction(gameId, playerName, rightHouse)
+                setResult(Activity.RESULT_OK)
                 finish()
             }
         }
