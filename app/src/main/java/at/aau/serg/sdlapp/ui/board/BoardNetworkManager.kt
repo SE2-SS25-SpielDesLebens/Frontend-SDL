@@ -8,6 +8,9 @@ import at.aau.serg.sdlapp.model.board.Field
 import at.aau.serg.sdlapp.model.player.PlayerManager
 import at.aau.serg.sdlapp.network.StompConnectionManager
 import at.aau.serg.sdlapp.network.message.MoveMessage
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.hildan.krossbow.stomp.subscribeText
 import java.util.Timer
 import java.util.TimerTask
 
@@ -19,7 +22,8 @@ class BoardNetworkManager(
     private val playerManager: PlayerManager,
     private val playerName: String,
     private val playerId: String,
-    private val callbacks: NetworkCallbacks
+    private val callbacks: NetworkCallbacks,
+    private val lobbyId: String? = null // Optional: Lobby-ID für Mehrspieler
 ) {
     // STOMP-Client für die Verbindung zum Backend
     private val stompClient: StompConnectionManager
@@ -33,9 +37,17 @@ class BoardNetworkManager(
             // In einer vollständigen Implementierung würde man hier ein Log-Fenster einblenden
         })
         initializeCallbacks()
-    }
-
-    /**
+        
+        // Wenn eine Lobby-ID vorhanden ist, sofort verbinden
+        if (!lobbyId.isNullOrEmpty()) {
+            println("🎲 BoardNetworkManager: Verbinde mit Lobby $lobbyId")
+            
+            // Eine kleine Verzögerung, um sicherzustellen, dass UI initialisiert ist
+            Handler(Looper.getMainLooper()).postDelayed({
+                joinExistingGame(lobbyId)
+            }, 500)
+        }
+    }    /**
      * Initialisiert alle Callbacks für den STOMP-Client
      */
     private fun initializeCallbacks() {
@@ -46,6 +58,19 @@ class BoardNetworkManager(
 
                 // Übergebe Spielerliste an Callback-Methode
                 callbacks.onPlayerListReceived(playerIds)
+            }
+        }
+        
+        // Handler für Farbänderungen von Spielern
+        stompClient.onPlayerColorChanged = { playerId, colorName ->
+            Handler(Looper.getMainLooper()).post {
+                println("🎨 Farbänderung für Spieler $playerId: $colorName")
+                
+                // Aktualisiere die Spielerfarbe im PlayerManager
+                playerManager.updatePlayerColor(playerId, colorName)
+                
+                // Übergebe Farbwechsel an Callback-Methode
+                callbacks.onPlayerColorChanged(playerId, colorName)
             }
         }
 
@@ -98,6 +123,14 @@ class BoardNetworkManager(
             Handler(Looper.getMainLooper()).post {
                 println("📊 Board-Daten vom Server erhalten (${fields.size} Felder)")
                 callbacks.onBoardDataReceived(fields)
+            }
+        }
+        
+        // Handler für Spielerpositionen
+        stompClient.onPlayerPositionsReceived = { positions ->
+            Handler(Looper.getMainLooper()).post {
+                println("📍 Spielerpositionen vom Server erhalten (${positions.size} Spieler)")
+                callbacks.onPlayerPositionsReceived(positions)
             }
         }
     }
@@ -172,6 +205,23 @@ class BoardNetworkManager(
     }
 
     /**
+     * Fordert die aktuellen Positionen aller Spieler vom Server an
+     */
+    fun requestPlayerPositions() {
+        try {
+            println("📍 Fordere Spielerpositionen vom Server an")
+            stompClient.requestPlayerPositions()
+        } catch (e: Exception) {
+            println("❌ Fehler beim Anfordern der Spielerpositionen: ${e.message}")
+            Toast.makeText(
+                context,
+                "Fehler beim Anfordern der Spielerpositionen",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    /**
      * Prüft, ob die Verbindung besteht
      */
     val isConnected: Boolean
@@ -195,9 +245,13 @@ class BoardNetworkManager(
         playerListUpdateTimer = Timer()
         playerListUpdateTimer?.scheduleAtFixedRate(object : TimerTask() {
             override fun run() {
-                // Anfrage im Hintergrund senden
+                // Anfrage nach Spielerliste senden
                 requestActivePlayers()
                 println("🔄 Automatische Anfrage nach Spielerliste gesendet")
+                
+                // Auch Positionen aller Spieler aktualisieren
+                requestPlayerPositions()
+                println("🔄 Automatische Anfrage nach Spielerpositionen gesendet")
             }
         }, 10000, 30000) // Initial nach 10 Sekunden, dann alle 30 Sekunden
 
@@ -211,20 +265,106 @@ class BoardNetworkManager(
         playerListUpdateTimer?.cancel()
         playerListUpdateTimer = null
         println("⏰ Spielerlisten-Update-Timer gestoppt")
-    }
-
-    /**
-     * Interface für die Netzwerk-Callbacks
+    }    /**
+     * Tritt einem bestehenden Spiel bei, das über die Lobby-ID identifiziert wird
+     */    /**
+     * Tritt einem existierenden Spiel in einer Lobby bei
      */
-    interface NetworkCallbacks {
-        fun onPlayerListReceived(playerIds: List<Int>)
+    private fun joinExistingGame(lobbyId: String) {
+        try {
+            println("🎮 Trete bestehendem Spiel in Lobby $lobbyId bei")
+            
+            // Stelle sicher, dass eine Verbindung besteht
+            if (!stompClient.isConnected) {
+                connect()
+                // Kurze Verzögerung für die Verbindung
+                Handler(Looper.getMainLooper()).postDelayed({
+                    completeGameJoin(lobbyId)
+                }, 1000)
+            } else {
+                completeGameJoin(lobbyId)
+            }
+            
+            Toast.makeText(
+                context,
+                "Trete Spiel in Lobby $lobbyId bei...",
+                Toast.LENGTH_SHORT
+            ).show()
+            
+        } catch (e: Exception) {
+            println("❌ Fehler beim Beitreten des Spiels: ${e.message}")
+            e.printStackTrace()
+            
+            Toast.makeText(
+                context,
+                "Fehler beim Beitreten des Spiels: ${e.message}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+      /**
+     * Führt den Spielbeitritt nach erfolgreicher Verbindung durch
+     */
+    private fun completeGameJoin(lobbyId: String) {
+        // Starte den Spielbeitritt in einem Coroutine-Scope
+        stompClient.run {
+            scope.launch {
+                try {
+                    // 1. Lobby-Topic in separater Coroutine abonnieren, damit es nicht blockierend ist
+                    scope.launch {
+                        try {
+                            sessionOrNull?.subscribeText("/topic/$lobbyId")?.collect { message ->
+                                println("📩 Nachricht aus Lobby $lobbyId: $message")
+                                // Je nach Inhalt verarbeiten (falls nötig)
+                            }
+                        } catch (e: Exception) {
+                            println("❌ Fehler beim Abonnieren des Lobby-Topics: ${e.message}")
+                        }
+                    }
+                    println("✅ Lobby-Topic abonniert: /topic/$lobbyId")
+                    
+                    // 2. Game-Status Topic in separater Coroutine abonnieren
+                    scope.launch {
+                        try {
+                            sessionOrNull?.subscribeText("/topic/game/$lobbyId/status")?.collect { message ->
+                                println("📢 Spielstatus: $message")
+                            }
+                        } catch (e: Exception) {
+                            println("❌ Fehler beim Abonnieren des Status-Topics: ${e.message}")
+                        }
+                    }
+                    println("✅ Spiel-Status-Topic abonniert: /topic/game/$lobbyId/status")
+                    
+                    // 3. Spielbeitritt zum Server senden
+                    joinExistingGame(lobbyId, playerName)
+                    
+                    // 4. Nach kurzer Verzögerung Brettkonfiguration und Positionen anfordern
+                    delay(1000)
+                    requestBoardData()
+                    requestPlayerPositions()
+                    requestActivePlayers()
+                } catch (e: Exception) {
+                    println("❌ Fehler beim Spielbeitritt: ${e.message}")
+                }
+            }
+        }
+    }    /**
+     * Interface für die Netzwerk-Callbacks
+     */    interface NetworkCallbacks {
+        fun onPlayerListReceived(playerIds: List<String>)
         fun onConnectionStateChanged(isConnected: Boolean)
         fun onConnectionError(errorMessage: String)
         fun onMoveReceived(move: MoveMessage)
+        fun onPlayerColorChanged(playerId: String, colorName: String)
 
         /**
          * Wird aufgerufen, wenn Spiel-Brett-Daten vom Server empfangen wurden
          */
         fun onBoardDataReceived(fields: List<Field>)
+        
+        /**
+         * Wird aufgerufen, wenn Spielerpositionen vom Server empfangen wurden
+         */
+        fun onPlayerPositionsReceived(positions: Map<String, Int>)
     }
 }

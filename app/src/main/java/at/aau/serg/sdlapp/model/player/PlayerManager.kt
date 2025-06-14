@@ -7,49 +7,35 @@ import at.aau.serg.sdlapp.model.game.GameConstants
  * Verwaltet alle Spieler und ihre Positionen (Singleton)
  */
 object PlayerManager {
-
-    // ❗ Spieler-Map ist jetzt privat und kann von außen nicht mehr direkt verändert werden
-    private val _players = mutableMapOf<String, Player>()
-
-    // Getter gibt nur eine Kopie zurück (immutable view)
+    // Liste aller aktiven Spieler
     val players: Map<String, Player>
         get() = _players.toMap()
-
+    private val _players = mutableMapOf<String, Player>()
+    
     // Der lokale Spieler (dieser Client)
     private var localPlayerId: String = "1"
-
-    // Status, ob das Spiel bereits beendet wurde
-    private var gameFinished = false
-    fun markGameFinished() {
-        gameFinished = true
-    }
-    fun isGameFinished(): Boolean = gameFinished
-
-    /**
+      /**
      * Fügt einen neuen Spieler hinzu
      */
-    fun addPlayer(playerId: String, name: String, initialFieldIndex: Int = 0): Player {
+    fun addPlayer(playerId: String, name: String, initialFieldIndex: Int = 0, color: CarColor = CarColor.BLUE): Player {
         val player = Player(playerId, name, initialFieldIndex)
         _players[playerId] = player
-        Log.d("PlayerManager", "🆕 Spieler hinzugefügt: $playerId -> Feld $initialFieldIndex")
         return player
     }
-
-    /**
-     * Setzt den lokalen Spieler (dieser Client)
+      /**
+     * Setzt den lokalen Spieler
      */
-    fun setLocalPlayer(playerId: String) {
-        Log.d("PlayerManager", "🌟 setLocalPlayer aufgerufen mit: $playerId")
+    fun setLocalPlayer(playerId: String, color: CarColor = CarColor.BLUE) {
         localPlayerId = playerId
-        if (!_players.containsKey(playerId)) {
-            Log.d("PlayerManager", "➕ Lokaler Spieler $playerId nicht gefunden – wird erstellt")
-            addPlayer(playerId, "Spieler $playerId")
+        // Stelle sicher, dass der lokale Spieler in der Map existiert
+        if (!players.containsKey(playerId)) {
+            addPlayer(playerId, "Spieler $playerId", color = color)
         } else {
-            Log.d("PlayerManager", "✅ Spieler $playerId existiert bereits")
+            // Wenn der Spieler bereits existiert, aktualisiere seine Farbe
+            players[playerId]?.color = color
         }
     }
-
-    /**
+      /**
      * Gibt den lokalen Spieler zurück
      */
     fun getLocalPlayer(): Player? {
@@ -65,35 +51,37 @@ object PlayerManager {
     /**
      * Gibt eine Liste aller aktuell bekannten Spieler zurück
      */
-    fun getAllPlayers(): List<Player> = _players.values.toList()
+    fun getAllPlayers(): Map<String, Player> = players
 
     /**
      * Gibt einen bestimmten Spieler anhand seiner ID zurück
      */
-    fun getPlayer(playerId: String): Player? = _players[playerId]
-
-    /**
-     * Aktualisiert die Position eines Spielers
+    fun getPlayer(playerId: String): Player? {
+        return players[playerId]
+    }
+      /**
+     * Aktualisiert die Position eines Spielers. Erstellt den Spieler, wenn er noch nicht existiert.
      */
     fun updatePlayerPosition(playerId: String, newFieldIndex: Int) {
-        _players[playerId]?.let { player ->
-            Log.d("PlayerManager", "📍 Spieler $playerId bewegt sich zu Feld $newFieldIndex")
-            player.currentFieldIndex = newFieldIndex
-        }
+        val player = players[playerId] ?: addPlayer(playerId, "Spieler $playerId")
+        player.currentFieldIndex = newFieldIndex
     }
 
     /**
      * Prüft, ob es sich bei der ID um den lokalen Spieler handelt
      */
-    fun isLocalPlayer(playerId: String): Boolean = playerId == localPlayerId
-
+    fun isLocalPlayer(playerId: String): Boolean {
+        return playerId == localPlayerId
+    }
+    
     /**
      * Synchronisiert die aktuelle Spielerliste mit der vom Server übermittelten Liste
      */
     fun syncWithActivePlayersList(activePlayerIds: List<String>): List<String> {
-        val currentPlayers = _players.keys.toSet()
+        val currentPlayers = players.keys.toSet()
         val removedPlayers = mutableListOf<String>()
-
+        
+        // Spieler entfernen, die nicht mehr in der Liste sind (außer lokaler Spieler)
         for (playerId in currentPlayers) {
             if (!activePlayerIds.contains(playerId) && playerId != localPlayerId) {
                 _players.remove(playerId)
@@ -108,16 +96,20 @@ object PlayerManager {
      * Entfernt einen Spieler aus der Map – aber nicht den lokalen Spieler!
      */
     fun removePlayer(playerId: String): Player? {
-        if (playerId == localPlayerId) return null
-        Log.d("PlayerManager", "🚫 Entferne Spieler $playerId")
+        // Den lokalen Spieler nicht entfernen
+        if (playerId == localPlayerId) {
+            return null
+        }
         return _players.remove(playerId)
     }
 
     /**
      * Prüft, ob ein Spieler mit dieser ID existiert
      */
-    fun playerExists(playerId: String): Boolean = _players.containsKey(playerId)
-
+    fun playerExists(playerId: String): Boolean {
+        return players.containsKey(playerId)
+    }
+    
     /**
      * Erstellt eine Debug-Zusammenfassung aller Spieler
      */
@@ -127,31 +119,31 @@ object PlayerManager {
                     "${it.id}:${it.color}" + if (it.id == localPlayerId) "*" else ""
                 }
     }
-
-    //prüft, ob ein oder alle Spieler auf dem Endfeld stehen
-    fun haveAllPlayersFinished(): Boolean {
-        val allPlayers = players.values.toList()
-
-        // Debug-Ausgabe
-        allPlayers.forEach {
-            Log.d("FinishCheck", "Spieler ${it.name} auf Feld ${it.currentFieldIndex}")
-        }
-
-        // Wenn nur 1 Spieler → genügt, wenn dieser auf einem Endfeld steht
-        if (allPlayers.size == 1) {
-            return allPlayers.first().currentFieldIndex in GameConstants.FINAL_FIELD_INDICES
-        }
-
-        // Sonst: alle müssen auf einem Endfeld sein
-        return allPlayers.all { it.currentFieldIndex in GameConstants.FINAL_FIELD_INDICES }
-    }
-
-
+    
     /**
-     * Entfernt alle Spieler – für Tests
+     * Aktualisiert die Farbe eines Spielers
      */
-    fun clearPlayers() {
-        _players.clear()
-        localPlayerId = "1"
+    fun updatePlayerColor(playerId: String, colorName: String) {
+        val player = players[playerId] ?: return
+        
+        // Konvertiere den String zur Enum
+        val color = try {
+            CarColor.valueOf(colorName)
+        } catch (e: Exception) {
+            println("❌ Fehler beim Konvertieren der Farbe: $colorName")
+            return
+        }
+        
+        // Setze die Farbe
+        player.color = color
+        println("🎨 Farbe für Spieler $playerId auf $colorName aktualisiert")
     }
+
+    fun getAllPlayersAsList() : List<Player> = players.values.toList()
+
+    fun clearPlayers(){
+        _players.clear()
+    }
+
+    fun getAllPlayerIds() = _players.keys
 }

@@ -6,7 +6,7 @@ object BoardData {
     val board: List<Field> = listOf(
         // x größer ist rechts und y größer ist runter
         //StartNormal
-        Field(index = 1, x = 0.09f, y = 0.63f, nextFields = listOf(2,3,4,5,6,7,8,9,20,21), type = FieldType.STARTNORMAL),
+        Field(index = 1, x = 0.1f, y = 0.65f, nextFields = listOf(2,3,4,5,6,7,8,9,20,21), type = FieldType.STARTNORMAL),
         Field(index = 2, x = 0.145f, y = 0.6205f, nextFields = listOf(3,4,5,6,7,8,9,20,21,22), type = FieldType.ZAHLTAG),
         Field(index = 3, x = 0.18f, y = 0.6f, nextFields = listOf(4,5,6,7,8,9,20,21,22,23), type = FieldType.AKTION),
         Field(index = 4, x = 0.2105f, y = 0.571f, nextFields = listOf(5,6,7,8,9,20,21,22,23,24), type = FieldType.ANLAGE),
@@ -18,15 +18,15 @@ object BoardData {
 
 // x größer ist rechts und y größer ist runter
         //StartUni
-        Field(index = 10, x = 0.09f, y = 0.795f, nextFields = listOf(11,12,13,14,15,16,17,18,19,20), type = FieldType.STARTUNI),
-        Field(index = 11, x = 0.145f, y = 0.785f, nextFields = listOf(12,13,14,15,16,17,18,19,20,21), type = FieldType.AKTION),
-        Field(index = 12, x = 0.178f, y = 0.806f, nextFields = listOf(13,14,15,16,17,18,19,20,21,22), type = FieldType.FREUND),
-        Field(index = 13, x = 0.2102f, y = 0.788f, nextFields = listOf(14,15,16,17,18,19,20,21,22,23), type = FieldType.AKTION),
-        Field(index = 14, x = 0.243f, y = 0.7605f, nextFields = listOf(15,16,17,18,19,20,21,22,23,24), type = FieldType.FREUND),
-        Field(index = 15, x = 0.275f, y = 0.735f, nextFields = listOf(16,17,18,19,20,21,22,23,24,25), type = FieldType.AKTION),
-        Field(index = 16, x = 0.308f, y = 0.712f, nextFields = listOf(17,18,19,20,21,22,23,24,25,26), type = FieldType.AKTION),
-        Field(index = 17, x = 0.339f, y = 0.738f, nextFields = listOf(18,19,20,21,22,23,24,25,26,27), type = FieldType.FREUND),
-        Field(index = 18, x = 0.372f, y = 0.71f, nextFields = listOf(19,20,21,22,23,24,25,26,27,28), type = FieldType.AKTION),
+        Field(index = 10, x = 0.1f, y = 0.815f, nextFields = listOf(11,12,13,14,15,16,17,18,19), type = FieldType.STARTUNI),
+        Field(index = 11, x = 0.145f, y = 0.785f, nextFields = listOf(12,13,14,15,16,17,18,19), type = FieldType.AKTION),
+        Field(index = 12, x = 0.178f, y = 0.806f, nextFields = listOf(13,14,15,16,17,18,19), type = FieldType.FREUND),
+        Field(index = 13, x = 0.2102f, y = 0.788f, nextFields = listOf(14,15,16,17,18,19), type = FieldType.AKTION),
+        Field(index = 14, x = 0.243f, y = 0.7605f, nextFields = listOf(15,16,17,18,19), type = FieldType.FREUND),
+        Field(index = 15, x = 0.275f, y = 0.735f, nextFields = listOf(16,17,18,19), type = FieldType.AKTION),
+        Field(index = 16, x = 0.308f, y = 0.712f, nextFields = listOf(17,18,19), type = FieldType.AKTION),
+        Field(index = 17, x = 0.339f, y = 0.738f, nextFields = listOf(18,19), type = FieldType.FREUND),
+        Field(index = 18, x = 0.372f, y = 0.71f, nextFields = listOf(19), type = FieldType.AKTION),
         Field(index = 19, x = 0.405f, y = 0.68f, nextFields = listOf(20,21,22,23,24,25,26,27,28), type = FieldType.EXAMEN),
 // x größer ist rechts und y größer ist runter
         //Gemeinsamer Weg zur Heirat

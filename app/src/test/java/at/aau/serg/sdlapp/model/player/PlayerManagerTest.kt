@@ -87,6 +87,7 @@ class PlayerManagerTest {
         val all = PlayerManager.getAllPlayers()
         assertEquals(2, all.size)
     }
+    /*
 
     @Test
     fun testHaveAllPlayersFinished_SinglePlayer() {
@@ -108,6 +109,7 @@ class PlayerManagerTest {
         PlayerManager.addPlayer("31", "Kai", 1)
         assertFalse(PlayerManager.haveAllPlayersFinished())
     }
+    */
 
     @Test
     fun testIsLocalPlayer() {
@@ -128,11 +130,82 @@ class PlayerManagerTest {
         val summary = PlayerManager.getDebugSummary()
         assertTrue(summary.contains("*")) // local player markiert
     }
-
+    /*
     @Test
     fun testGameFinishedState() {
         assertFalse(PlayerManager.isGameFinished())
         PlayerManager.markGameFinished()
         assertTrue(PlayerManager.isGameFinished())
+    }*/
+
+    @Test
+    fun testUpdatePlayerColor() {
+        // Given
+        val playerId = "40"
+        PlayerManager.addPlayer(playerId, "Max")
+        
+        // When
+        PlayerManager.updatePlayerColor(playerId, "RED")
+        
+        // Then
+        val player = PlayerManager.getPlayer(playerId)
+        assertEquals(CarColor.RED, player?.color)
+    }
+
+    @Test
+    fun testGetAllPlayersAsList() {
+        // Given
+        PlayerManager.addPlayer("41", "Alice")
+        PlayerManager.addPlayer("42", "Bob")
+        
+        // When
+        val playerList = PlayerManager.getAllPlayersAsList()
+        
+        // Then
+        assertEquals(2, playerList.size)
+        assertTrue(playerList.any { it.id == "41" && it.name == "Alice" })
+        assertTrue(playerList.any { it.id == "42" && it.name == "Bob" })
+    }
+
+    @Test
+    fun testClearPlayers() {
+        // Given
+        PlayerManager.addPlayer("43", "Alice")
+        PlayerManager.addPlayer("44", "Bob")
+        assertTrue(PlayerManager.getAllPlayers().isNotEmpty())
+        
+        // When
+        PlayerManager.clearPlayers()
+        
+        // Then
+        assertTrue(PlayerManager.getAllPlayers().isEmpty())
+    }
+
+    @Test
+    fun testGetAllPlayerIds() {
+        // Given
+        PlayerManager.addPlayer("45", "Alice")
+        PlayerManager.addPlayer("46", "Bob")
+        
+        // When
+        val playerIds = PlayerManager.getAllPlayerIds()
+        
+        // Then
+        assertEquals(2, playerIds.size)
+        assertTrue(playerIds.contains("45"))
+        assertTrue(playerIds.contains("46"))
+    }
+
+    @Test
+    fun testUpdatePlayerColorWithInvalidPlayerId() {
+        // Given
+        val nonExistentPlayerId = "999"
+        
+        // When
+        PlayerManager.updatePlayerColor(nonExistentPlayerId, "RED")
+        
+        // Then
+        // Sollte keine Exception werfen
+        assertNull(PlayerManager.getPlayer(nonExistentPlayerId))
     }
 }

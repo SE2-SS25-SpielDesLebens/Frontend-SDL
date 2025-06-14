@@ -19,8 +19,8 @@ data class MoveMessage(
     @SerializedName("timestamp") val timestamp: String? = null,
     @SerializedName("nextPossibleFields") val nextPossibleFields: List<Int> = emptyList()
 ) {
-    val playerId: Int
-        get() = playerName.toIntOrNull() ?: -1
+    val playerId: String
+        get() = playerName
     
     // Konvertiert den empfangenen String-Feldtyp in einen Enum-Wert
     val fieldType: FieldType

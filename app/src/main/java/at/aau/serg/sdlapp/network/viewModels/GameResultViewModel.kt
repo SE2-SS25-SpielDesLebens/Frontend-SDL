@@ -6,7 +6,7 @@ import at.aau.serg.sdlapp.model.player.PlayerManager
 
 class GameResultViewModel : ViewModel() {
 
-    private val players: List<Player> = PlayerManager.getAllPlayers()
+    private val players: List<Player> = PlayerManager.getAllPlayersAsList()
 
     val sortedPlayers = players.sortedByDescending { it.money + it.investments }
 

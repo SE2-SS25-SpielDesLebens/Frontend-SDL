@@ -6,6 +6,7 @@ import android.util.Log
 import at.aau.serg.sdlapp.network.message.MoveMessage
 import at.aau.serg.sdlapp.network.message.OutputMessage
 import at.aau.serg.sdlapp.network.message.PlayerListMessage
+import at.aau.serg.sdlapp.network.message.PlayerPositionsMessage
 import at.aau.serg.sdlapp.network.message.StompMessage
 import at.aau.serg.sdlapp.network.message.house.HouseBuyElseSellMessage
 import at.aau.serg.sdlapp.network.message.house.HouseMessage
@@ -30,11 +31,10 @@ import org.hildan.krossbow.stomp.subscribeText
 import org.hildan.krossbow.websocket.okhttp.OkHttpWebSocketClient
 import org.json.JSONException
 import org.json.JSONObject
-
-
-
-private const val WEBSOCKET_URI = "ws://se2-demo.aau.at:53217/websocket-broker/websocket"
-//private const val WEBSOCKET_URI = "ws://10.0.2.2:8080/websocket-broker/websocket" //for testing
+//
+//private const val WEBSOCKET_URI = "ws://se2-demo.aau.at:53217/websocket"
+private const val WEBSOCKET_URI = "ws://10.0.2.2:8080/websocket-broker/websocket"
+//private const val WEBSOCKET_URI = "ws://192.168.8.140:8080/websocket-broker/websocket" //for testing
 private const val NO_CONNECTION_MESSAGE = "Keine Verbindung aktiv"
 private const val NO_CONNECTION_SUBSCRIPTION_MESSAGE = "❌ Verbindung nicht aktiv – Subscription fehlgeschlagen"
 
@@ -46,7 +46,7 @@ class StompConnectionManager(
 ) {
 
     private var session: StompSession? = null
-    private val scope = CoroutineScope(ioDispatcher)
+    val scope = CoroutineScope(ioDispatcher)
     private val gson = Gson()
     private val _lobbyUpdates = MutableSharedFlow<LobbyResponseMessage>()
     var isConnected: Boolean = false
@@ -54,9 +54,15 @@ class StompConnectionManager(
     var onMoveReceived: ((MoveMessage) -> Unit)? = null
     var onConnectionStateChanged: ((Boolean) -> Unit)? = null
     var onConnectionError: ((String) -> Unit)? = null
-    var onPlayerListReceived: ((List<Int>) -> Unit)? = null
+    var onPlayerListReceived: ((List<String>) -> Unit)? = null
     var onBoardDataReceived: ((List<at.aau.serg.sdlapp.model.board.Field>) -> Unit)? = null
+    var onPlayerPositionsReceived: ((Map<String, Int>) -> Unit)? = null
 
+    /**
+     * Callback für Farbänderungen von Spielern
+     * Wird aufgerufen, wenn ein Spieler seine Farbe ändert
+     */
+    var onPlayerColorChanged: ((playerId: String, color: String) -> Unit)? = null
 
     // Reconnect-Logik
     private var shouldReconnect = true
@@ -95,9 +101,7 @@ class StompConnectionManager(
                 onResult(result)
             }
         }
-    }
-
-    private fun launchMessageCollectors() {
+    }    private fun launchMessageCollectors() {
         session?.let { s ->
             scope.launch {
                 s.subscribeText("/topic/game").collect { msg ->
@@ -119,8 +123,18 @@ class StompConnectionManager(
                     handleBoardDataMessage(msg)
                 }
             }
+            scope.launch {
+                s.subscribeText("/topic/players/positions").collect { msg ->
+                    handlePlayerPositionsMessage(msg)
+                }
+            }
+            scope.launch {
+                s.subscribeText("/topic/player/colors").collect { msg ->
+                    handlePlayerColorMessage(msg)
+                }
+            }
         }
-    }    private fun handleGameMessage(msg: String) {
+    }private fun handleGameMessage(msg: String) {
         try {
             sendToMainThread("📥 Nachricht vom Server empfangen: ${msg.take(100)}${if (msg.length > 100) "..." else ""}")
 
@@ -177,6 +191,43 @@ class StompConnectionManager(
             onBoardDataReceived?.invoke(fields)
         } catch (e: Exception) {
             sendToMainThread("⚠️ Fehler beim Verarbeiten der Board-Daten: ${e.message}")
+        }
+    }
+
+    private fun handlePlayerPositionsMessage(msg: String) {
+        try {
+            sendToMainThread("👥 Spielerpositionen vom Server empfangen")
+            val positionsMessage = gson.fromJson(msg, PlayerPositionsMessage::class.java)
+            
+            // Log erhaltene Positionen
+            val count = positionsMessage.playerPositions.size
+            sendToMainThread("📍 $count Spielerpositionen aktualisiert")
+            
+            // Rufe den Callback mit den Spielerpositionen auf
+            onPlayerPositionsReceived?.invoke(positionsMessage.playerPositions)
+        } catch (e: Exception) {
+            sendToMainThread("⚠️ Fehler beim Verarbeiten der Spielerpositionen: ${e.message}")
+            e.printStackTrace()
+        }
+    }    /**
+     * Verarbeitet eine Nachricht über die Farbänderung eines Spielers
+     */
+    private fun handlePlayerColorMessage(msg: String) {
+        try {
+            val stompMessage = gson.fromJson(msg, StompMessage::class.java)
+            
+            // Prüfe, ob es sich um eine color_selected-Nachricht handelt
+            if (stompMessage.action?.startsWith("color_selected:") == true) {
+                val color = stompMessage.action.substring("color_selected:".length)
+                val playerId = stompMessage.playerName
+                
+                sendToMainThread("🎨 Spieler $playerId hat Farbe $color ausgewählt")
+                
+                // Rufe den Callback für Farbänderungen auf
+                onPlayerColorChanged?.invoke(playerId, color)
+            }
+        } catch (e: Exception) {
+            sendToMainThread("⚠️ Fehler beim Verarbeiten der Farbänderung: ${e.message}")
         }
     }
 
@@ -637,6 +688,113 @@ class StompConnectionManager(
         } ?: println("   ✗ Keine aktive Session – Confirmation-Subscription fehlgeschlagen")
     }
 
+    /**
+     * Fordert die aktuellen Positionen aller Spieler vom Server an
+     */
+    fun requestPlayerPositions() {
+        sessionOrNull?.let {
+            scope.launch {
+                try {
+                    sendToMainThread("📍 Fordere Spielerpositionen vom Server an")
+                    session?.sendText("/app/players/positions/request", "{}")
+                } catch (e: Exception) {
+                    sendToMainThread("❌ Fehler beim Anfordern der Spielerpositionen: ${e.message}")
+                }
+            }
+        } ?: sendToMainThread(NO_CONNECTION_MESSAGE)
+    }
+
+    /**
+     * Sendet eine Anfrage zum Beitreten eines bestehenden Spiels
+     * 
+     * @param lobbyId Die ID der Lobby, zu der das Spiel gehört
+     * @param playerName Der Name des Spielers, der beitreten möchte
+     */
+    /**
+     * Tritt einem existierenden Spiel bei.
+     * Sendet eine Beitrittsanfrage an den Server und abonniert relevante Topics.
+     * 
+     * @param lobbyId Die ID der Lobby
+     * @param playerName Der Name des Spielers, der beitreten möchte
+     */
+    fun joinExistingGame(lobbyId: String, playerName: String) {
+        sessionOrNull?.let {
+            scope.launch {
+                try {
+                    // 1. Lobby-Topic abonnieren für Updates
+                    scope.launch {
+                        try {
+                            sessionOrNull?.subscribeText("/topic/$lobbyId")?.collect { message ->
+                                sendToMainThread("📩 Nachricht aus Lobby $lobbyId: $message")
+                            }
+                        } catch (e: Exception) {
+                            sendToMainThread("❌ Fehler beim Abonnieren des Lobby-Topics: ${e.message}")
+                        }
+                    }
+                    sendToMainThread("✅ Lobby-Topic abonniert: /topic/$lobbyId")
+                    
+                    // 2. Game-Status Topic abonnieren
+                    scope.launch {
+                        try {
+                            sessionOrNull?.subscribeText("/topic/game/$lobbyId/status")?.collect { message ->
+                                sendToMainThread("📢 Spielstatus: $message")
+                            }
+                        } catch (e: Exception) {
+                            sendToMainThread("❌ Fehler beim Abonnieren des Status-Topics: ${e.message}")
+                        }
+                    }
+                    sendToMainThread("✅ Spiel-Status-Topic abonniert: /topic/game/$lobbyId/status")
+                    
+                    // 3. Beitrittsanfrage senden
+                    val message = StompMessage(playerName = playerName, gameId = lobbyId)
+                    val json = gson.toJson(message)
+                    session?.sendText("/app/game/$lobbyId/join", json)
+                    sendToMainThread("✅ Beitrittsanfrage für Spiel in Lobby $lobbyId gesendet")
+                } catch (e: Exception) {
+                    sendToMainThread("❌ Fehler beim Senden der Beitrittsanfrage: ${e.message}")
+                }
+            }
+        } ?: sendToMainThread(NO_CONNECTION_MESSAGE)
+    }
+
+    /**
+     * Subscribes to the game status topic for a specific lobby to receive game start notifications
+     */
+    fun subscribeToGameStatus(gameId: String, onGameStarted: () -> Unit) {
+        sessionOrNull?.let { session ->
+            scope.launch {
+                try {
+                    Log.d("StompConnectionManager", "Subscribing to game status: /topic/game/$gameId/status")
+                    session.subscribeText("/topic/game/$gameId/status").collect { msg ->
+                        Log.d("StompConnectionManager", "🎲 Game status message received: $msg")
+                        if (msg.contains("Spiel wurde gestartet")) {
+                            Log.d("StompConnectionManager", "🎮 Game started notification received!")
+                            withContext(mainDispatcher) {
+                                onGameStarted()
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("StompConnectionManager", "❌ Error subscribing to game status", e)
+                }
+            }
+        } ?: Log.e("StompConnectionManager", NO_CONNECTION_SUBSCRIPTION_MESSAGE)
+    }
+
+    fun sendColorSelection(player: String, color: String) {
+        sessionOrNull?.let {
+            val message = StompMessage(playerName = player, action = "color:$color")
+            val json = gson.toJson(message)
+            scope.launch {
+                try {
+                    session?.sendText("/app/player/color", json)
+                    sendToMainThread("🎨 Farbauswahl '$color' gesendet")
+                } catch (e: Exception) {
+                    sendToMainThread("❌ Fehler beim Senden der Farbauswahl: ${e.message}")
+                }
+            }
+        } ?: sendToMainThread(NO_CONNECTION_SUBSCRIPTION_MESSAGE)
+    }
 }
 
 /**

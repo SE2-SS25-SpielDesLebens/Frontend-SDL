@@ -2,6 +2,8 @@ package at.aau.serg.sdlapp.ui.activity
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,6 +17,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,8 +43,6 @@ class LobbyActivity : ComponentActivity() {
     private lateinit var session: StompSession
     private val viewModel by lazy { getSharedViewModel() }
     private val scope = CoroutineScope(Dispatchers.IO)
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -64,17 +66,53 @@ class LobbyActivity : ComponentActivity() {
             return
         }
 
+        // GameStart-Listener für direkte Benachrichtigungen vom Server einrichten
+        viewModel.myStomp.value?.let { stompManager ->
+            stompManager.subscribeToGameStatus(lobbyID) {
+                Log.d("LobbyActivity", "🎮 Game status subscription: Game started notification received!")
+                lobbyViewModel.forceTriggerGameStart()
+            }
+        }
+
+        // Observe isGameStarted to handle navigation outside of Composable
+        scope.launch {
+            lobbyViewModel.isGameStarted.collect { isStarted ->
+                if (isStarted) {
+                    Log.d("LobbyActivity", "🎮 Flow observer: Game started state changed to true")
+                    navigateToBoardActivity()
+                }
+            }
+        }
+
         lobbyViewModel.initialize(lobbyID, playerName)
 
         setContent {
             LobbyScreen(viewModel = lobbyViewModel)
         }
     }
-
-    @Composable
+    
+    /**
+     * Helper method to navigate to the BoardActivity
+     */
+    private fun navigateToBoardActivity() {
+        Log.d("LobbyActivity", "🎮 Navigating to BoardActivity...")
+        val intent = Intent(this@LobbyActivity, BoardActivity::class.java).apply {
+            putExtra("playerName", playerName)
+            putExtra("lobbyID", lobbyID)
+        }
+        startActivity(intent)
+        finish() // Close LobbyActivity
+    }    @Composable
     fun LobbyScreen(viewModel: LobbyViewModel) {
         val textColor = Color.White
         val players by viewModel.players.collectAsState()
+        val isGameStarted by viewModel.isGameStarted.collectAsState()
+        
+        // Logging für Debug-Zwecke
+        Log.d("LobbyActivity", "🔄 LobbyScreen recomposing: isGameStarted=$isGameStarted, players=${players.size}")
+        
+        // Note: Die Navigation wird jetzt über den Flow-Observer in onCreate() gehandelt,
+        // nicht mehr direkt in der Composable-Funktion
 
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -109,20 +147,36 @@ class LobbyActivity : ComponentActivity() {
                         textAlign = TextAlign.Center)
                 }
             }
+            val isStartingGame = remember { mutableStateOf(false) }
+            
             Button(
                 onClick = {
-                    //TODO: startet Spiel, soll nur Host können
-                    val intent = Intent(this@LobbyActivity, BoardActivity::class.java).apply {
-                        putExtra("playerName", playerName) // Spielername übergeben
-                        putExtra("lobbyID", lobbyID)       // Lobby-ID übergeben
-                    }
-                    startActivity(intent)
+                    if (isStartingGame.value) return@Button // Verhindere Mehrfachklicks
+                    
+                    // UI-Status aktualisieren
+                    isStartingGame.value = true
+                    
+                    // Spiel auf dem Backend starten
+                    Log.d("LobbyActivity", "Spielstart-Button gedrückt, starte Spiel auf dem Server...")
+                    viewModel.startGame()
+                    
+                    // Zusätzliche Sicherheit: Falls das isGameStarted-Flag nicht korrekt gesetzt wird,
+                    // führen wir nach einer kurzen Verzögerung trotzdem die Navigation aus
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        if (!viewModel.isGameStarted.value) {
+                            Log.d("LobbyActivity", "⏱️ Timeout - Keine Bestätigung vom Server erhalten, leite trotzdem weiter...")
+                            viewModel.forceTriggerGameStart()
+                        }
+                        // Reset status falls nötig
+                        isStartingGame.value = false
+                    }, 3000) // 3 Sekunden Timeout
                 },
                 modifier = Modifier
                     .padding(top = 16.dp)
-                    .align(Alignment.CenterHorizontally)
+                    .align(Alignment.CenterHorizontally),
+                enabled = !isStartingGame.value
             ) {
-                Text("Spiel starten")
+                Text(if (isStartingGame.value) "Spiel wird gestartet..." else "Spiel starten")
             }
             Button(
                 onClick = {

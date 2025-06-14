@@ -34,7 +34,7 @@ class BoardActivity : ComponentActivity(),
     BoardMoveManager.MoveCallbacks {
 
     // Kernkomponenten der Activity
-    private lateinit var playerId: String
+    private var playerId = "1"
     private lateinit var boardImage: ImageView
     private lateinit var zoomLayout: ZoomLayout
     private lateinit var diceButton: ImageButton
@@ -71,7 +71,8 @@ class BoardActivity : ComponentActivity(),
 
     /**
      * Initialisiert die grundlegenden UI-Komponenten
-     */    private fun initializeUIComponents() {
+     */
+    private fun initializeUIComponents() {
         zoomLayout = findViewById(R.id.zoomLayout)
         boardImage = findViewById(R.id.boardImag)
         diceButton = findViewById(R.id.diceButton)
@@ -81,16 +82,18 @@ class BoardActivity : ComponentActivity(),
         // Debug-Meldung zum Board-Status
         boardImage.post {
             Log.d("BoardActivity", "Board geladen: Größe ${boardImage.width}x${boardImage.height}")
-            Toast.makeText(this, "Board geladen: ${boardImage.width}x${boardImage.height}", Toast.LENGTH_SHORT).show()
-        }
-
-        // Player-ID aus Intent lesen
+            Toast.makeText(
+                this,
+                "Board geladen: ${boardImage.width}x${boardImage.height}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }        // Player-ID aus Intent lesen
         playerName = intent.getStringExtra("playerName") ?: "1"
         playerId = playerName
-        Log.d("BoardActivity", "Spieler initialisiert: ID=$playerId, Name=$playerName")
-        Log.d("BoardActivity", "🧾 Intent enthält playerName = ${intent.getStringExtra("playerName")}")
-        Log.d("BoardActivity", "➡️ Initialisierte playerId = $playerId")
 
+        // Lobby-ID aus Intent lesen
+        val lobbyId = intent.getStringExtra("lobbyID")
+        Log.d("BoardActivity", "Spieler initialisiert: ID=$playerId, Name=$playerName, Lobby=$lobbyId")
     }
 
     /**
@@ -112,19 +115,22 @@ class BoardActivity : ComponentActivity(),
             boardContainer = boardContainer,
             boardImage = boardImage,
             zoomLayout = zoomLayout
-        )
-
-        // BoardNetworkManager initialisieren
+        )        // BoardNetworkManager initialisieren
+        val lobbyId = intent.getStringExtra("lobbyID")
         networkManager = BoardNetworkManager(
             context = this,
             playerManager = playerManager,
             playerName = playerName,
             playerId = playerId,
-            callbacks = this
+            callbacks = this,
+            lobbyId = lobbyId
         )
 
         // Fordere die Board-Daten vom Server an
         networkManager.requestBoardData()
+
+        // Fordere die Spielerpositionen vom Server an
+        networkManager.requestPlayerPositions()
 
         // BoardUIManager initialisieren
         uiManager = BoardUIManager(
@@ -145,6 +151,7 @@ class BoardActivity : ComponentActivity(),
         // Füge einen Reload-Button hinzu, wenn er benötigt wird
         setupDebugReloadButton()
     }
+
 
     /**
      * Fügt einen Reload-Button für Debug-Zwecke hinzu
@@ -207,7 +214,10 @@ class BoardActivity : ComponentActivity(),
                 // Sende die Würfelzahl an das Backend und überlasse ihm die Bewegungsberechnung
                 val currentFieldIndex = moveManager.getCurrentFieldIndex()
                 networkManager.sendRealMove(diceRoll, currentFieldIndex)
-                Log.d("BoardActivity", "Würfelzug $diceRoll gesendet von Feld $currentFieldIndex für Spieler $playerName")
+                Log.d(
+                    "BoardActivity",
+                    "Würfelzug $diceRoll gesendet von Feld $currentFieldIndex für Spieler $playerName"
+                )
 
                 // Zeige Ladezustand an
                 Toast.makeText(this, "Berechne Bewegung...", Toast.LENGTH_SHORT).show()
@@ -219,7 +229,10 @@ class BoardActivity : ComponentActivity(),
                 Handler(Looper.getMainLooper()).postDelayed({
                     if (moveManager.getCurrentFieldIndex() == currentFieldIndex) {
                         // Wenn die Position sich nicht geändert hat, probiere lokale Bewegung
-                        Log.d("BoardActivity", "FALLBACK: Keine Antwort vom Server erhalten, versuche lokale Bewegung")
+                        Log.d(
+                            "BoardActivity",
+                            "FALLBACK: Keine Antwort vom Server erhalten, versuche lokale Bewegung"
+                        )
                         implementLocalMovement(diceRoll, currentFieldIndex)
                     }
                 }, 3000) // 3 Sekunden warten
@@ -258,22 +271,30 @@ class BoardActivity : ComponentActivity(),
      */
     private fun implementLocalMovement(diceRoll: Int, currentFieldIndex: Int) {
         try {
-            Log.d("BoardActivity", "Implementiere lokale Bewegung: Würfel $diceRoll von Feld $currentFieldIndex")
-            Toast.makeText(this, "Verwende lokale Bewegung (Würfel $diceRoll)", Toast.LENGTH_SHORT).show()
+            Log.d(
+                "BoardActivity",
+                "Implementiere lokale Bewegung: Würfel $diceRoll von Feld $currentFieldIndex"
+            )
+            Toast.makeText(this, "Verwende lokale Bewegung (Würfel $diceRoll)", Toast.LENGTH_SHORT)
+                .show()
 
             // Berechne neues Feld basierend auf der nextFields-Liste des aktuellen Feldes und dem Würfelwert
-            val currentField = at.aau.serg.sdlapp.model.board.BoardData.board.find { it.index == currentFieldIndex }
+            val currentField =
+                at.aau.serg.sdlapp.model.board.BoardData.board.find { it.index == currentFieldIndex }
             if (currentField != null) {
                 // Finde alle verfügbaren Felder
                 val allFields = at.aau.serg.sdlapp.model.board.BoardData.board
 
                 // Bestimme das Zielfeld basierend auf dem Würfelwert und der nextFields-Liste
-                val targetIndex: Int
+                var targetIndex: Int
 
                 // Wenn es keine nextFields gibt, bleiben wir auf dem aktuellen Feld
                 if (currentField.nextFields.isEmpty()) {
                     targetIndex = currentFieldIndex
-                    Log.d("BoardActivity", "Keine nextFields verfügbar, bleibe auf Feld $currentFieldIndex")
+                    Log.d(
+                        "BoardActivity",
+                        "Keine nextFields verfügbar, bleibe auf Feld $currentFieldIndex"
+                    )
                 } else {
                     // Bestimme den Zielindex basierend auf dem Würfelwert
                     targetIndex = if (diceRoll <= currentField.nextFields.size) {
@@ -286,7 +307,10 @@ class BoardActivity : ComponentActivity(),
                         // nehmen wir den letzten verfügbaren Eintrag
                         currentField.nextFields.last()
                     }
-                    Log.d("BoardActivity", "Zielindex aus nextFields: $targetIndex (Würfel: $diceRoll, verfügbare nextFields: ${currentField.nextFields})")
+                    Log.d(
+                        "BoardActivity",
+                        "Zielindex aus nextFields: $targetIndex (Würfel: $diceRoll, verfügbare nextFields: ${currentField.nextFields})"
+                    )
                 }
 
                 // Finde das Zielfeld
@@ -301,15 +325,11 @@ class BoardActivity : ComponentActivity(),
                         figureManager.moveFigureToPosition(targetField.x, targetField.y, player.id)
                         moveManager.setCurrentFieldIndex(targetField.index)
                         playerManager.updatePlayerPosition(player.id, targetField.index)
-                        Toast.makeText(this, "Figur zu Feld ${targetField.index} bewegt", Toast.LENGTH_SHORT).show()
-
-                        // 🏁 Prüfe, ob alle Spieler fertig sind
-                        if (PlayerManager.haveAllPlayersFinished()) {
-                            Log.d("BoardActivity", "🎯 (Fallback) Alle Spieler haben beendet – EndScreen wird gestartet.")
-                            val intent = Intent(this, EndScreenActivity::class.java)
-                            startActivity(intent)
-                            finish()
-                        }
+                        Toast.makeText(
+                            this,
+                            "Figur zu Feld ${targetField.index} bewegt",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     } else {
                         Log.e("BoardActivity", "Lokaler Spieler ist null")
                     }
@@ -332,11 +352,12 @@ class BoardActivity : ComponentActivity(),
             }
         } catch (e: Exception) {
             Log.e("BoardActivity", "Fehler bei lokaler Bewegung: ${e.message}", e)
-            Toast.makeText(this, "Fehler bei lokaler Bewegung: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Fehler bei lokaler Bewegung: ${e.message}", Toast.LENGTH_SHORT)
+                .show()
         }
     }
 
-    override fun onPlayerListReceived(playerIds: List<Int>) {
+    override fun onPlayerListReceived(playerIds: List<String>) {
         // Füge alle neuen Spieler hinzu und verarbeite entfernte Spieler
         val playerIdsToProcess = playerIds.map { it.toString() }.toMutableList()
 
@@ -394,64 +415,111 @@ class BoardActivity : ComponentActivity(),
         updateStatusText()
 
         // Zeigt eine kleine Benachrichtigung über die anderen Spieler, aber nur bei Änderungen
-        val allPlayers = playerManager.getAllPlayers()
-        val hasChanges = removedPlayers.isNotEmpty() || playerIdsToProcess.any { !playerManager.playerExists(it) }
+        val allPlayers = playerManager.getAllPlayersAsList()
+        val hasChanges =
+            removedPlayers.isNotEmpty() || playerIdsToProcess.any { !playerManager.playerExists(it) }
         uiManager.showOtherPlayersNotification(allPlayers, hasChanges)
     }
 
     override fun onConnectionStateChanged(isConnected: Boolean) {
         // Aktiviere/Deaktiviere UI-Elemente je nach Verbindungsstatus
-        diceButton.isEnabled = isConnected
-
-        // Zeige visuelles Feedback für Verbindungsstatus
+        diceButton.isEnabled = isConnected        // Zeige visuelles Feedback für Verbindungsstatus
         if (isConnected) {
             diceButton.alpha = 1.0f
 
-            // Zeige nach kurzer Verzögerung die Spielerinformationen an
+            // Bei Wiederverbindung alle Daten neu laden
             Handler(Looper.getMainLooper()).postDelayed({
-                uiManager.showActivePlayersInfo()
-            }, 3000) // 3 Sekunden warten, damit die Spielerlisten-Anfragen verarbeitet werden können
-        } else {
+                // Lade die Spieldaten neu
+                reloadBoardDataAndPositions()
+
+                // Zeige Spielerinformationen nach kurzer Verzögerung
+                Handler(Looper.getMainLooper()).postDelayed({
+                    uiManager.showActivePlayersInfo()
+                }, 3000) // 3 Sekunden warten
+
+                Toast.makeText(this, "Verbindung wiederhergestellt", Toast.LENGTH_SHORT).show()
+            }, 1000) // 1 Sekunde warten, damit die Verbindung stabil ist        } else {
             diceButton.alpha = 0.5f
+            Toast.makeText(this, "Verbindung verloren", Toast.LENGTH_SHORT).show()
+            
+            // Versuche nach einer Verzögerung erneut zu verbinden
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (!networkManager.isConnected) {
+                    Log.d("BoardActivity", "Versuche erneut zu verbinden...")
+                    networkManager.connect()
+                }
+            }, 5000) // Nach 5 Sekunden erneut versuchen
+            
+            // Versuche nach einer Verzögerung erneut zu verbinden
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (!networkManager.isConnected) {
+                    Log.d("BoardActivity", "Versuche erneut zu verbinden...")
+                    networkManager.connect()
+                }
+            }, 5000) // Nach 5 Sekunden erneut versuchen
         }
     }
 
     override fun onConnectionError(errorMessage: String) {
         // Zeige einen Fehlerdialog an
         uiManager.showErrorDialog("Verbindungsfehler", errorMessage)
-    }    override fun onMoveReceived(move: MoveMessage) {
+    }
+
+    override fun onMoveReceived(move: MoveMessage) {
         Log.d("BoardActivity", "🎲🎲🎲 onMoveReceived: $move")
 
         try {
             // Detaillierte Debug-Ausgabe
-            Log.d("BoardActivity", "Bewegung für Spieler ${move.playerName} (ID=${move.playerId}) zu Feld ${move.fieldIndex}")
-            Log.d("BoardActivity", "Feldtyp: ${move.typeString}, Nächste Felder: ${move.nextPossibleFields}")
+            Log.d(
+                "BoardActivity",
+                "Bewegung für Spieler ${move.playerName} (ID=${move.playerId}) zu Feld ${move.fieldIndex}"
+            )
+            Log.d(
+                "BoardActivity",
+                "Feldtyp: ${move.typeString}, Nächste Felder: ${move.nextPossibleFields}"
+            )
 
             // Toast mit Info anzeigen
-            Toast.makeText(this,
+            Toast.makeText(
+                this,
                 "Bewegung für Spieler ${move.playerName} zu Feld ${move.fieldIndex}",
                 Toast.LENGTH_SHORT
             ).show()
 
             // Verfügbarkeit des Zielfelds prüfen
-            val fieldExists = at.aau.serg.sdlapp.model.board.BoardDataManager.fieldExists(move.fieldIndex)
+            val fieldExists =
+                at.aau.serg.sdlapp.model.board.BoardDataManager.fieldExists(move.fieldIndex)
             if (!fieldExists) {
-                Log.w("BoardActivity", "⚠️ Zielfeld ${move.fieldIndex} existiert nicht in lokalen BoardData")
+                Log.w(
+                    "BoardActivity",
+                    "⚠️ Zielfeld ${move.fieldIndex} existiert nicht in lokalen BoardData"
+                )
 
                 // Toast mit Warnung anzeigen
-                Toast.makeText(this,
+                Toast.makeText(
+                    this,
                     "Warnung: Feld ${move.fieldIndex} nicht lokal vorhanden",
                     Toast.LENGTH_LONG
                 ).show()
             }
 
             // Bewegungsnachricht an Move-Manager übergeben
-            moveManager.handleMoveMessage(move, playerId, playerName, networkManager.getStompClient())
+            moveManager.handleMoveMessage(
+                move,
+                playerId,
+                playerName,
+                networkManager.getStompClient()
+            )
 
         } catch (e: Exception) {
             // Bei einem Fehler ausführliche Log-Ausgabe und Toast
-            Log.e("BoardActivity", "❌ Fehler bei der Verarbeitung einer Bewegungsnachricht: ${e.message}", e)
-            Toast.makeText(this,
+            Log.e(
+                "BoardActivity",
+                "❌ Fehler bei der Verarbeitung einer Bewegungsnachricht: ${e.message}",
+                e
+            )
+            Toast.makeText(
+                this,
                 "Fehler bei der Verarbeitung der Bewegung: ${e.message}",
                 Toast.LENGTH_LONG
             ).show()
@@ -461,8 +529,15 @@ class BoardActivity : ComponentActivity(),
                 reloadBoardDataAndPositions()
             }, 2000) // 2 Sekunden Verzögerung
         }
-    }override fun onStartFieldSelected(fieldIndex: Int) {
-        moveManager.placePlayerAtStartField(playerId, fieldIndex, networkManager.getStompClient(), playerName)
+    }
+
+    override fun onStartFieldSelected(fieldIndex: Int) {
+        moveManager.placePlayerAtStartField(
+            playerId,
+            fieldIndex,
+            networkManager.getStompClient(),
+            playerName
+        )
     }
 
     override fun onPlayersChanged() {
@@ -476,7 +551,8 @@ class BoardActivity : ComponentActivity(),
 
         // Utilize the BoardDataManager to synchronize the data
         if (fields.isNotEmpty()) {
-            val synchronized = at.aau.serg.sdlapp.model.board.BoardDataManager.synchronizeBoardData(fields)
+            val synchronized =
+                at.aau.serg.sdlapp.model.board.BoardDataManager.synchronizeBoardData(fields)
 
             if (synchronized) {
                 Log.d("BoardActivity", "Board data successfully synchronized with server data")
@@ -497,12 +573,18 @@ class BoardActivity : ComponentActivity(),
                         val yDiff = Math.abs(frontendField.y - serverField.y)
 
                         if (xDiff > 0.1 || yDiff > 0.1) {
-                            Log.w("BoardActivity", "Field ${frontendField.index} has significant position difference: " +
-                                    "Frontend (${frontendField.x}, ${frontendField.y}) vs " +
-                                    "Server (${serverField.x}, ${serverField.y})")
+                            Log.w(
+                                "BoardActivity",
+                                "Field ${frontendField.index} has significant position difference: " +
+                                        "Frontend (${frontendField.x}, ${frontendField.y}) vs " +
+                                        "Server (${serverField.x}, ${serverField.y})"
+                            )
                         }
                     } else {
-                        Log.w("BoardActivity", "Field ${frontendField.index} exists in frontend but not on server")
+                        Log.w(
+                            "BoardActivity",
+                            "Field ${frontendField.index} exists in frontend but not on server"
+                        )
                     }
                 }
             } else {
@@ -581,35 +663,105 @@ class BoardActivity : ComponentActivity(),
      * Neupositionierung der Spielfiguren.
      */
     private fun reloadBoardDataAndPositions() {
-        // Toast als visuelles Feedback zeigen
-        Toast.makeText(this, "Brett-Daten werden neu geladen...", Toast.LENGTH_SHORT).show()
+        try {
+            Log.d("BoardActivity", "🔄 Lade Spieldaten neu...")
 
-        // Board-Daten neu vom Server anfordern
-        networkManager.requestBoardData()
+            // Fordere die Board-Daten vom Server an
+            networkManager.requestBoardData()
 
-        // Kurze Verzögerung, damit die Daten geladen werden können
-        Handler(Looper.getMainLooper()).postDelayed({
-            // Log-Ausgabe der aktuellen Board-Dimensionen
-            Log.d("BoardActivity", "Board-Dimensionen: ${boardImage.width}x${boardImage.height}")
+            // Fordere die Spielerpositionen vom Server an
+            networkManager.requestPlayerPositions()
 
-            // Alle aktiven Spieler vom Server anfordern
+            // Fordere die aktiven Spieler an
             networkManager.requestActivePlayers()
 
-            // Aktualisieren des lokalen Spielers
-            val localPlayer = playerManager.getLocalPlayer()
-            val currentFieldIndex = moveManager.getCurrentFieldIndex()
+            Toast.makeText(this, "Daten werden neu geladen...", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e("BoardActivity", "❌ Fehler beim Neuladen der Daten: ${e.message}", e)
+            Toast.makeText(this, "Fehler beim Neuladen: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }    override fun onPlayerPositionsReceived(positions: Map<String, Int>) {
+        Log.d("BoardActivity", "📍 Spielerpositionen vom Server empfangen: ${positions.size} Positionen")
 
-            if (localPlayer != null && currentFieldIndex > 0) {
-                // Position des lokalen Spielers aktualisieren
-                Log.d("BoardActivity", "Aktualisiere Position des lokalen Spielers zu Feld $currentFieldIndex")
-                moveManager.updatePlayerPosition(localPlayer.id.toString(), currentFieldIndex)
+        try {
+            val existingPlayerIds = playerManager.getAllPlayerIds()
+            val newPlayers = mutableListOf<String>()
+            
+            // Verarbeite alle erhaltenen Positionen
+            positions.forEach { (playerId, fieldIndex) ->
+                // Prüfe, ob es sich um einen neuen Spieler handelt
+                if (!existingPlayerIds.contains(playerId) && playerId != this.playerId) {
+                    newPlayers.add(playerId)
+                }
+                
+                // Aktualisiere lokale Daten (erstellt auch neue Spieler falls nötig)
+                playerManager.updatePlayerPosition(playerId, fieldIndex)
 
-                // Status-Text aktualisieren
-                updateStatusText()
+                // Bewege die Figur auf dem Brett
+                val field = at.aau.serg.sdlapp.model.board.BoardData.board.find { it.index == fieldIndex }
+                if (field != null) {
+                    figureManager.moveFigureToPosition(field.x, field.y, playerId)
+                    Log.d("BoardActivity", "🚗 Spieler $playerId zu Feld $fieldIndex bewegt")
+                } else {
+                    Log.e("BoardActivity", "❌ Feld $fieldIndex nicht gefunden für Spieler $playerId")
+                }
+            }
+            
+            // Benachrichtigung über neue Spieler anzeigen
+            if (newPlayers.isNotEmpty()) {
+                if (newPlayers.size == 1) {
+                    Toast.makeText(this, "Neuer Spieler beigetreten: ${newPlayers.first()}", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "${newPlayers.size} neue Spieler beigetreten", Toast.LENGTH_SHORT).show()
+                }
+                
+                // Spezielle Animation für neue Spieler
+                newPlayers.forEach { newPlayerId ->
+                    figureManager.playNewPlayerAnimation(newPlayerId)
+                }
             }
 
-            // Toast mit Info anzeigen
-            Toast.makeText(this, "Daten geladen, Positionen aktualisiert", Toast.LENGTH_SHORT).show()
-        }, 1000) // 1 Sekunde warten
+            // UI aktualisieren
+            updateStatusText()
+
+            // Wenn es Änderungen für den lokalen Spieler gab, setze dessen Position im MoveManager
+            val localPlayer = playerManager.getLocalPlayer()
+            if (localPlayer != null && positions.containsKey(localPlayer.id)) {
+                val newPosition = positions[localPlayer.id] ?: 0
+                moveManager.setCurrentFieldIndex(newPosition)
+                Log.d("BoardActivity", "🎮 Aktualisiere Position des lokalen Spielers auf Feld $newPosition")
+            }
+
+        } catch (e: Exception) {
+            Log.e("BoardActivity", "❌ Fehler beim Verarbeiten der Spielerpositionen: ${e.message}", e)
+            Toast.makeText(
+                this,
+                "Fehler bei der Aktualisierung der Spielerpositionen",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    /**
+     * Wird aufgerufen, wenn ein Spieler seine Farbe geändert hat
+     */
+    override fun onPlayerColorChanged(playerId: String, colorName: String) {
+        Log.d("BoardActivity", "🎨 Spieler $playerId hat Farbe zu $colorName geändert")
+        
+        try {
+            // Aktualisiere das Aussehen der Spielfigur
+            figureManager.updateFigureAppearance(playerId)
+            
+            // Zeige eine Benachrichtigung an
+            if (playerId != this.playerId) {
+                Toast.makeText(
+                    this,
+                    "Spieler $playerId spielt jetzt mit Farbe $colorName",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        } catch (e: Exception) {
+            Log.e("BoardActivity", "❌ Fehler bei Farbaktualisierung für $playerId: ${e.message}")
+        }
     }
 }

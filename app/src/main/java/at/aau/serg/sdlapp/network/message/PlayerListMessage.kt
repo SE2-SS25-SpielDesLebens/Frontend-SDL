@@ -4,6 +4,6 @@ package at.aau.serg.sdlapp.network.message
  */
 data class PlayerListMessage(
     val type: String = "players",
-    val playerList: List<Int> = emptyList(),
+    val playerList: List<String> = emptyList(),
     val timestamp: String = ""
 )

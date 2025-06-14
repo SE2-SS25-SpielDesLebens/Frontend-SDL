@@ -84,18 +84,16 @@ object PlayerRepository {
                 json.decodeFromString(it.readText())
             }
         }
-    }
-
-    // ✅ PUT-Endpunkte
-    suspend fun marryPlayer(playerId: Int) {
+    }    // ✅ PUT-Endpunkte
+    suspend fun marryPlayer(playerId: String) {
         makePutRequest("$BASE_URL/$playerId/marry")
     }
 
-    suspend fun addChild(playerId: Int) {
+    suspend fun addChild(playerId: String) {
         makePutRequest("$BASE_URL/$playerId/add-child")
     }
 
-    suspend fun investForPlayer(playerId: Int) {
+    suspend fun investForPlayer(playerId: String) {
         makePutRequest("$BASE_URL/$playerId/invest")
     }
 

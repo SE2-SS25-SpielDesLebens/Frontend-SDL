@@ -27,11 +27,12 @@ class BoardMoveManager(
     /**
      * Verarbeitet eine empfangene MoveMessage vom Server
      */
-    fun handleMoveMessage(move: MoveMessage, localPlayerId: String, playerName: String, stompClient: StompConnectionManager) {
-        val movePlayerId = move.playerId.toString()
-
-        if (movePlayerId != "-1") {
-            if (movePlayerId == localPlayerId) {
+    fun handleMoveMessage(move: MoveMessage, playerId: String, playerName: String, stompClient: StompConnectionManager) {
+        // Den Spielerzug im PlayerManager aktualisieren
+        val movePlayerId = move.playerId
+        if (movePlayerId.isNotEmpty()) {
+            // Unterscheiden zwischen lokalem und entferntem Spieler
+            if (movePlayerId == playerId) {
                 println("🏠 LOKALER SPIELER bewegt sich")
                 handleLocalPlayerMove(move)
             } else {
@@ -42,7 +43,7 @@ class BoardMoveManager(
             boardFigureManager.clearAllMarkers()
             addMarkersForNextPossibleFields(move, stompClient, playerName)
         } else {
-            println("❌ Fehler: Spieler-ID ist -1, kann Bewegung nicht zuordnen")
+            println("❌ Fehler: Spieler-ID ist leer, kann Bewegung nicht zuordnen")
             Toast.makeText(context, "Fehler: Ungültige Spieler-ID in Bewegungsnachricht", Toast.LENGTH_SHORT).show()
         }
     }
@@ -95,28 +96,13 @@ class BoardMoveManager(
                 boardFigureManager.moveFigureToPosition(similarField.x, similarField.y, playerId)
             }
         }
-
-
-        if (playerManager.haveAllPlayersFinished()) {
-            Toast.makeText(context, "🎉 Alle Spieler haben das Spiel beendet!", Toast.LENGTH_LONG).show()
-            Log.d("BoardMoveManager", "🔍 context-Klasse: ${context::class.java.name}")
-
-            Handler(Looper.getMainLooper()).post {
-                Log.d("BoardMoveManager", "🎯 Alle Spieler haben beendet – EndScreen wird gestartet.")
-                val intent = Intent(context, EndScreenActivity::class.java)
-                context.startActivity(intent)
-            }
-        }
-
-
-
-    }
-
-    /**
+    }    /**
      * Verarbeitet die Bewegung eines entfernten Spielers
      */
     private fun handleRemotePlayerMove(playerId: String, moveMessage: MoveMessage) {
-        if (!playerManager.playerExists(playerId)) {
+        // Prüfen, ob wir den Spieler bereits kennen
+        if (playerManager.getPlayer(playerId) == null) {
+            // Neuen Spieler hinzufügen
             val player = playerManager.addPlayer(playerId, "Spieler $playerId")
             println("👤 Neuer Spieler erkannt: ID=$playerId, Farbe=${player.color}")
             boardFigureManager.playNewPlayerAnimation(playerId)
@@ -155,12 +141,11 @@ class BoardMoveManager(
                 }
             }
         }
-    }
-
-    /**
+    }    /**
      * Platziert den Spieler auf dem angegebenen Startfeld
      */
     fun placePlayerAtStartField(playerId: String, fieldIndex: Int, stompClient: StompConnectionManager, playerName: String) {
+        // Aktuellen Feld-Index setzen
         currentFieldIndex = fieldIndex
         playerManager.updatePlayerPosition(playerId, fieldIndex)
 
@@ -172,14 +157,13 @@ class BoardMoveManager(
 
         stompClient.sendMove(playerName, "join:$fieldIndex")
         println("🎮 Sende join:$fieldIndex an Backend")
-    }
-
-    /**
+    }    /**
      * Aktualisiert die Position eines Spielers, falls notwendig
      */
     fun updatePlayerPosition(playerId: String, fieldIndex: Int) {
-        val current = playerManager.getPlayer(playerId)?.currentFieldIndex
-        if (current != fieldIndex) {
+        // Nur aktualisieren, wenn sich die Position ändert
+        if (playerManager.getPlayer(playerId)?.currentFieldIndex != fieldIndex) {
+            // Position aktualisieren
             playerManager.updatePlayerPosition(playerId, fieldIndex)
 
             val field = BoardData.board.find { it.index == fieldIndex }
@@ -189,9 +173,6 @@ class BoardMoveManager(
         }
     }
 
-    /**
-     * Gibt das aktuelle Feld des lokalen Spielers zurück
-     */
     fun getCurrentFieldIndex(): Int {
         val local = playerManager.getLocalPlayer()
         Log.d("BoardMoveManager", "📍 getCurrentFieldIndex – localPlayer = $local")
@@ -200,11 +181,16 @@ class BoardMoveManager(
 
 
     /**
-     * Setzt den aktuellen Feldindex manuell
+     * Setzt den aktuellen Field-Index
+     *
+     * @param fieldIndex Der zu setzende Field-Index
      */
-    fun setCurrentFieldIndex(index: Int) {
-        currentFieldIndex = index
+    fun setCurrentFieldIndex(fieldIndex: Int) {
+        this.currentFieldIndex = fieldIndex
+        println("🔄 Field-Index aktualisiert: $fieldIndex")
     }
+    
+
 
     /**
      * Interface für Move-Callbacks

@@ -11,6 +11,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import at.aau.serg.sdlapp.R
+import at.aau.serg.sdlapp.model.player.CarColor
 import at.aau.serg.sdlapp.model.player.Player
 import at.aau.serg.sdlapp.model.player.PlayerManager
 import at.aau.serg.sdlapp.network.StompConnectionManager
@@ -23,11 +24,10 @@ class BoardUIManager(
     private val playerManager: PlayerManager,
     private val layoutInflater: LayoutInflater,
     private val uiCallbacks: UICallbacks
-) {
-    /**
-     * Zeigt einen Dialog zur Auswahl des Startpunktes (normal oder Uni)
+) {    /**
+     * Zeigt einen Dialog zur Auswahl des Startpunktes (normal oder Uni) und der Spielerfarbe
      */    fun showStartChoiceDialog(playerName: String, stompClient: StompConnectionManager) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_start_choice, null)
+        val dialogView = layoutInflater.inflate(R.layout.dialog_start_choice_with_color, null)
         val dialog = AlertDialog.Builder(context)
             .setView(dialogView)
             .setCancelable(false)
@@ -35,7 +35,53 @@ class BoardUIManager(
 
         // Statustext für Startpunkt-Auswahl
         val statusText = dialogView.findViewById<TextView>(R.id.tvStatus)
-        statusText?.text = "Wähle deinen Startpunkt."
+        statusText?.text = "Wähle deine Farbe und deinen Startpunkt."
+
+        // Radiobuttons für die Farbauswahl
+        val redRadioButton = dialogView.findViewById<android.widget.RadioButton>(R.id.rbRed)
+        val blueRadioButton = dialogView.findViewById<android.widget.RadioButton>(R.id.rbBlue)
+        val greenRadioButton = dialogView.findViewById<android.widget.RadioButton>(R.id.rbGreen)
+        val yellowRadioButton = dialogView.findViewById<android.widget.RadioButton>(R.id.rbYellow)
+        
+        // Vorschau-Bild für die ausgewählte Farbe
+        val previewImage = dialogView.findViewById<android.widget.ImageView>(R.id.ivColorPreview)
+
+        // Standardfarbe auf Blau setzen
+        var selectedColor = CarColor.BLUE
+        previewImage.setImageResource(R.drawable.car_blue_0)
+
+        // Farbauswahl-Listener
+        redRadioButton.setOnCheckedChangeListener { buttonView, isChecked ->
+            if (isChecked) {
+                selectedColor = CarColor.RED
+                previewImage.setImageResource(R.drawable.car_red_0)
+                println("🎨 Farbe Rot ausgewählt")
+            }
+        }
+        
+        blueRadioButton.setOnCheckedChangeListener { buttonView, isChecked ->
+            if (isChecked) {
+                selectedColor = CarColor.BLUE
+                previewImage.setImageResource(R.drawable.car_blue_0)
+                println("🎨 Farbe Blau ausgewählt")
+            }
+        }
+        
+        greenRadioButton.setOnCheckedChangeListener { buttonView, isChecked ->
+            if (isChecked) {
+                selectedColor = CarColor.GREEN
+                previewImage.setImageResource(R.drawable.car_green_0)
+                println("🎨 Farbe Grün ausgewählt")
+            }
+        }
+        
+        yellowRadioButton.setOnCheckedChangeListener { buttonView, isChecked ->
+            if (isChecked) {
+                selectedColor = CarColor.YELLOW
+                previewImage.setImageResource(R.drawable.car_yellow_0)
+                println("🎨 Farbe Gelb ausgewählt")
+            }
+        }
 
         // Buttons für die Startpunktauswahl
         val normalButton = dialogView.findViewById<Button>(R.id.btnStartNormal)
@@ -52,7 +98,19 @@ class BoardUIManager(
                 // Starte am normalen Startfeld (Index 1)
                 val startFieldIndex = 1
                 
+                // Setze Farbe des Spielers
+                val localPlayerId = playerManager.getLocalPlayer()?.id ?: ""
+                playerManager.setLocalPlayer(localPlayerId, selectedColor)
+                println("🎨 Farbe $selectedColor für Spieler $localPlayerId gesetzt")
+                
+                // Sende Farbe an Backend
+                stompClient.sendColorSelection(playerName, selectedColor.name)
+                
+                // Benachrichtige über Startfeld-Auswahl
                 uiCallbacks.onStartFieldSelected(startFieldIndex)
+
+                // Zeige eine Benachrichtigung über die ausgewählte Farbe
+                Toast.makeText(context, "Du spielst mit der Farbe: $selectedColor", Toast.LENGTH_SHORT).show()
 
                 // Schließe den Dialog
                 dialog.dismiss()
@@ -72,7 +130,19 @@ class BoardUIManager(
                 // Starte am Uni-Startfeld (Index 10)
                 val startFieldIndex = 10
                 
+                // Setze Farbe des Spielers
+                val localPlayerId = playerManager.getLocalPlayer()?.id ?: ""
+                playerManager.setLocalPlayer(localPlayerId, selectedColor)
+                println("🎨 Farbe $selectedColor für Spieler $localPlayerId gesetzt")
+                
+                // Sende Farbe an Backend
+                stompClient.sendColorSelection(playerName, selectedColor.name)
+                
+                // Benachrichtige über Startfeld-Auswahl
                 uiCallbacks.onStartFieldSelected(startFieldIndex)
+
+                // Zeige eine Benachrichtigung über die ausgewählte Farbe
+                Toast.makeText(context, "Du spielst mit der Farbe: $selectedColor", Toast.LENGTH_SHORT).show()
 
                 // Schließe den Dialog
                 dialog.dismiss()
@@ -103,12 +173,10 @@ class BoardUIManager(
 
             println("❌ Fehlerdialog angezeigt: $title - $message")
         }
-    }
-
-    /**
+    }    /**
      * Zeigt eine Benachrichtigung über einen neuen Spieler an
      */
-    fun showNewPlayerNotification(playerId: Int) {
+    fun showNewPlayerNotification(playerId: String) {
         Toast.makeText(
             context,
             "Neuer Spieler beigetreten: Spieler $playerId",
@@ -140,7 +208,7 @@ class BoardUIManager(
      * Nützlich für Debug-Zwecke oder als Info für den Benutzer
      */
     fun showActivePlayersInfo() {
-        val players = playerManager.getAllPlayers()
+        val players = playerManager.getAllPlayersAsList()
         if (players.isEmpty()) {
             println("👥 Keine Spieler vorhanden")
             return
@@ -166,7 +234,7 @@ class BoardUIManager(
      */
     fun showPlayerListOverlay() {
         // Spielerliste abrufen
-        val players = playerManager.getAllPlayers()
+        val players = playerManager.getAllPlayersAsList()
 
         // Dialog erstellen
         val dialogView = layoutInflater.inflate(R.layout.dialog_player_list, null)
