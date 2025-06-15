@@ -46,9 +46,7 @@ class SellThreeHouseActivity : ComponentActivity() {
 
         // STOMP-Verbindung initialisieren
         stomp = StompConnectionManager ({ msg -> showToast(msg) })
-        stomp.connectAsync(playerName) { connected ->
-            if (!connected) showToast("Verbindung fehlgeschlagen")
-        }
+        stomp.connectAsync(playerName)
 
         // --- Center House UI ---
         findViewById<TextView>(R.id.tvDescriptionCenter).text           = centerHouse.bezeichnung

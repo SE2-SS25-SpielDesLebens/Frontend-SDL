@@ -41,9 +41,7 @@ class SellOneHouseActivity : ComponentActivity() {
 
         // STOMP-Verbindung initialisieren
         stomp = StompConnectionManager( { msg -> showToast(msg) })
-        stomp.connectAsync(playerName) { connected ->
-            if (!connected) showToast("Verbindung fehlgeschlagen")
-        }
+        stomp.connectAsync(playerName)
 
         // Daten anzeigen
         findViewById<TextView>(R.id.tvDescription).text = house.bezeichnung

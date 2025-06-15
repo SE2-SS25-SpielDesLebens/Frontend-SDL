@@ -33,9 +33,7 @@ class HouseCardFunctionalityActivity : ComponentActivity() {
 
         // STOMP-Verbindung initialisieren
         stomp = StompConnectionManager ({ msg -> showToast(msg) })
-        stomp.connectAsync(playerName) { connected ->
-            if (!connected) showToast("Verbindung fehlgeschlagen")
-        }
+        stomp.connectAsync(playerName)
 
         // Kauf-Button: erst abonnieren, dann senden, dann BuyHouseActivity starten
         findViewById<Button>(R.id.btnBuyHouse).setOnClickListener {

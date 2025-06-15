@@ -6,21 +6,13 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -30,18 +22,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import at.aau.serg.sdlapp.network.StompConnectionManager
 import at.aau.serg.sdlapp.network.viewModels.ConnectionViewModel
 import at.aau.serg.sdlapp.network.viewModels.getSharedViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-
+import kotlinx.coroutines.*
 
 class HomeScreenActivity : ComponentActivity() {
     private lateinit var stomp: StompConnectionManager
@@ -51,12 +37,14 @@ class HomeScreenActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        //gets playername, maybe change to playername + boolean isHost later
         playerName = intent.getStringExtra("playerName") ?: "Spieler"
 
-        viewModel.initializeStomp { message ->
-            runOnUiThread {
-                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        // Initialisiere Stomp nur, wenn es noch nicht existiert
+        if (viewModel.myStomp.value == null) {
+            viewModel.initializeStomp { message ->
+                runOnUiThread {
+                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                }
             }
         }
         stomp = viewModel.myStomp.value!!
@@ -86,18 +74,7 @@ class HomeScreenActivity : ComponentActivity() {
                     .padding(bottom = 25.dp)
                     .align(Alignment.CenterHorizontally)
             )
-            Button(
-                onClick = {
-                    stomp.connectAsync(playerName)
-                    showToast("Verbindung gestartet")
-                },
-                modifier = Modifier
-                    .padding(8.dp)
-                    .align(Alignment.CenterHorizontally)
 
-            ) {
-                Text("Verbinden")
-            }
             Button(
                 onClick = {
                     CoroutineScope(Dispatchers.Main).launch {
@@ -112,22 +89,64 @@ class HomeScreenActivity : ComponentActivity() {
                     }
                 },
                 modifier = Modifier
+                    .fillMaxWidth(0.4f)
                     .padding(8.dp)
-                    .align(Alignment.CenterHorizontally)
+                    .align(Alignment.CenterHorizontally),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White.copy(alpha = 0.5f),
+                    contentColor = Color.White
+                ),
+                border = BorderStroke(1.dp, Color.White)
             ) {
-                Text("Lobby erstellen")
+                Text("Lobby erstellen", fontSize = 20.sp)
             }
+
             Button(
                 onClick = {
                     showTextField = true
-
                 },
                 modifier = Modifier
+                    .fillMaxWidth(0.4f)
                     .padding(8.dp)
-                    .align(Alignment.CenterHorizontally)
+                    .align(Alignment.CenterHorizontally),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White.copy(alpha = 0.5f),
+                    contentColor = Color.White
+                ),
+                border = BorderStroke(1.dp, Color.White)
             ) {
-                Text("Lobby beitreten")
+                Text("Lobby beitreten", fontSize = 20.sp)
             }
+
+            Button(
+                onClick = {
+                    // Nur verbinden wenn noch keine Verbindung besteht
+                    if (!stomp.isConnected) {
+                        stomp.connectAsync(playerName)
+                        showToast("Verbindung gestartet")
+                    } else {
+                        showToast("Bereits verbunden")
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth(0.4f)
+                    .padding(8.dp)
+                    .align(Alignment.CenterHorizontally),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White.copy(alpha = 0.5f),
+                    contentColor = Color.White
+                ),
+                border = BorderStroke(1.dp, Color.White)
+            ) {
+                Text(
+                    text = if (!stomp.isConnected) "Verbinden" else "Verbunden",
+                    fontSize = 20.sp
+                )
+            }
+
             if (showTextField) {
                 LaunchedEffect(showTextField) {
                     delay(100) //bis Textfield im Layout ist
@@ -148,15 +167,12 @@ class HomeScreenActivity : ComponentActivity() {
                         placeholder = {
                             Text(
                                 text = "Lobby-ID eingeben",
-                                color = Color.Gray
+                                color = Color.White.copy(alpha = 0.6f)
                             )
                         },
+                        shape = RoundedCornerShape(24.dp),
                         singleLine = true,
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .focusRequester(focusRequester = focusRequester)
-                            .align(Alignment.CenterHorizontally),
-                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 if (lobbyId.trim().isBlank()) return@KeyboardActions
@@ -198,12 +214,6 @@ class HomeScreenActivity : ComponentActivity() {
 
     private fun showToast(msg: String) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-    }
-
-    @Preview
-    @Composable
-    fun HomePreview() {
-        HomeScreen()
     }
 
 

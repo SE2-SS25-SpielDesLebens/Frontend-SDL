@@ -74,7 +74,7 @@
             android:exported="true"
             android:label="Homescreen"
             android:screenOrientation="landscape"
-            android:theme="@style/Theme.SDLApp.HomeScreen" />
+            android:theme="@style/Theme.MyApplication" />
 
         <!-- ✅ LobbyActivity -->
         <activity
@@ -82,7 +82,7 @@
             android:exported="true"
             android:label="Lobby"
             android:screenOrientation="landscape"
-            android:theme="@style/Theme.SDLApp.HomeScreen" />
+            android:theme="@style/Theme.MyApplication" />
 
         <!-- ✅ JobCardActivity for Functionality Test-->
         <activity

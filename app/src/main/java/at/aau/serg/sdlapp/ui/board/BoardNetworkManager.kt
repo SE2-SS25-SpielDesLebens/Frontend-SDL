@@ -139,14 +139,7 @@ class BoardNetworkManager(
      * Stellt eine Verbindung zum Server her
      */
     fun connect() {
-        stompClient.connectAsync(playerName) { isConnected ->
-            // Optional: Callback-Logik, z.B. Toast oder Logging
-            if (isConnected) {
-                println("✅ Verbindung erfolgreich hergestellt")
-            } else {
-                println("❌ Verbindung fehlgeschlagen")
-            }
-        }
+        stompClient.connectAsync(playerName)
     }
 
     /**
