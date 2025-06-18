@@ -81,7 +81,7 @@ class HomeScreenActivity : ComponentActivity() {
                         val newLobbyId = withContext(Dispatchers.IO) {
                             stomp.sendLobbyCreate(playerName)
                         }
-                        // Direkt danach neue Activity starten
+                        delay(3000)
                         val intent = Intent(this@HomeScreenActivity, LobbyActivity::class.java)
                         intent.putExtra("lobbyID", newLobbyId)
                         intent.putExtra("player", playerName)

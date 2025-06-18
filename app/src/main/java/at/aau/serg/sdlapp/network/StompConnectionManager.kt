@@ -27,8 +27,8 @@ import org.json.JSONException
 import org.json.JSONObject
 import kotlin.coroutines.cancellation.CancellationException
 
-private const val WEBSOCKET_URI = "ws://se2-demo.aau.at:53217/websocket"
-//private const val WEBSOCKET_URI = "ws://10.0.2.2:8080/websocket-broker/websocket"
+//private const val WEBSOCKET_URI = "ws://se2-demo.aau.at:53217/websocket"
+private const val WEBSOCKET_URI = "ws://192.168.8.151:8080/websocket-broker/websocket"
 
 //private const val WEBSOCKET_URI = "ws://192.168.8.140:8080/websocket-broker/websocket" //for testing
 private const val NO_CONNECTION_MESSAGE = "Keine Verbindung aktiv"
@@ -65,6 +65,7 @@ class StompConnectionManager(
     private var shouldReconnect = true
     private val maxReconnectAttempts = 5
     private var reconnectAttempts = 0
+
     /**
      * Gibt die aktuelle Session zurück, falls verbunden, sonst null.
      */
@@ -78,7 +79,7 @@ class StompConnectionManager(
             session = client.connect(WEBSOCKET_URI, login = playerName)
             isConnected = true
             launchMessageCollectors()
-            if(checkSuccessfulRegistration(playerName)){
+            if (checkSuccessfulRegistration(playerName)) {
                 sendToMainThread("✅ Verbunden mit Server")
                 onConnectionStateChanged?.invoke(true)
                 return@withContext true
@@ -102,100 +103,120 @@ class StompConnectionManager(
         return result
     }
 
-    suspend fun checkSuccessfulRegistration(playerName: String) : Boolean = withContext(ioDispatcher) {
-        val message = LobbyRequestMessage(playerName)
-        val json = gson.toJson(message)
-        Log.d("Debugging", "Session: $sessionOrNull, Player: $playerName")
-        val currentSession = sessionOrNull
-        if (currentSession != null) {
-            val collector = scope.async {
-                launchPlayerCheckCollector(playerName)
+    suspend fun checkSuccessfulRegistration(playerName: String): Boolean =
+        withContext(ioDispatcher) {
+            val message = LobbyRequestMessage(playerName)
+            val json = gson.toJson(message)
+            Log.d("Debugging", "Session: $sessionOrNull, Player: $playerName")
+            val currentSession = sessionOrNull
+            if (currentSession != null) {
+                val collector = scope.async {
+                    launchPlayerCheckCollector(playerName)
+                }
+
+                delay(100)
+                sessionOrNull?.sendText("/app/players/check", json)
+
+                return@withContext collector.await()
+            } else {
+                sendToMainThread(NO_CONNECTION_MESSAGE)
+                return@withContext false
             }
-
-            delay(100)
-            sessionOrNull?.sendText("/app/players/check", json)
-
-            return@withContext collector.await()
-        } else {
-            sendToMainThread(NO_CONNECTION_MESSAGE)
-            return@withContext false
         }
-    }
 
-    private suspend fun launchPlayerCheckCollector(playerName: String) : Boolean = withContext(ioDispatcher) {
-        var result = false
-        var parsedPlayer = ""
-        Log.d("PlayerCheck", "Starting player check collector for: $playerName")
-        
-        try {
-            sessionOrNull?.let { s->
-                withContext(ioDispatcher) {
-                    try {
-                        val subscription = s.subscribeText("/user/queue/player/check")
-                        
+    private suspend fun launchPlayerCheckCollector(playerName: String): Boolean =
+        withContext(ioDispatcher) {
+            var result = false
+            var parsedPlayer = ""
+            Log.d("PlayerCheck", "Starting player check collector for: $playerName")
+
+            try {
+                sessionOrNull?.let { s ->
+                    withContext(ioDispatcher) {
                         try {
-                            withTimeout(10000) { // 10 Sekunden Timeout
-                                try {
-                                    var found = false
-                                    subscription.collect { msg ->
-                                        if (!found) {
-                                            Log.d("PlayerCheck", "Received player check response: $msg")
-                                            
-                                            val json = JSONObject(msg)
-                                            val wasSuccessful = json.getBoolean("wasSuccessful")
-                                            parsedPlayer = json.getString("playerName")
+                            val subscription = s.subscribeText("/user/queue/player/check")
 
-                                            if (parsedPlayer == playerName) {
-                                                result = wasSuccessful
-                                                if (!result) {
-                                                    Log.e("PlayerCheck", "⚠️ Player check failed for $playerName")
-                                                    sendToMainThread("Spieler-Check fehlgeschlagen")
+                            try {
+                                withTimeout(10000) { // 10 Sekunden Timeout
+                                    try {
+                                        var found = false
+                                        subscription.collect { msg ->
+                                            if (!found) {
+                                                Log.d(
+                                                    "PlayerCheck",
+                                                    "Received player check response: $msg"
+                                                )
+
+                                                val json = JSONObject(msg)
+                                                val wasSuccessful = json.getBoolean("wasSuccessful")
+                                                parsedPlayer = json.getString("playerName")
+
+                                                if (parsedPlayer == playerName) {
+                                                    result = wasSuccessful
+                                                    if (!result) {
+                                                        Log.e(
+                                                            "PlayerCheck",
+                                                            "⚠️ Player check failed for $playerName"
+                                                        )
+                                                        sendToMainThread("Spieler-Check fehlgeschlagen")
+                                                    }
+                                                    found = true
+                                                    throw CancellationException(
+                                                        "Message found",
+                                                        null
+                                                    )// Beende den Flow aktiv
+                                                } else {
+                                                    Log.d(
+                                                        "PlayerCheck",
+                                                        "Ignoring response for different player: $parsedPlayer"
+                                                    )
                                                 }
-                                                found = true
-                                                throw CancellationException("Message found", null)// Beende den Flow aktiv
-                                            } else {
-                                                Log.d("PlayerCheck", "Ignoring response for different player: $parsedPlayer")
                                             }
                                         }
-                                    }
-                                } catch (e: CancellationException) {
-                                    if (e.message == "Message found") {
-                                        Log.d("PlayerCheck", "Successfully completed player check")
-                                    } else {
-                                        throw e
+                                    } catch (e: CancellationException) {
+                                        if (e.message == "Message found") {
+                                            Log.d(
+                                                "PlayerCheck",
+                                                "Successfully completed player check"
+                                            )
+                                        } else {
+                                            throw e
+                                        }
                                     }
                                 }
-                            }
-                        } catch (e: TimeoutCancellationException) {
-                            if (!result) { // Nur als Fehler loggen wenn wir keine erfolgreiche Antwort hatten
-                                Log.e("PlayerCheck", "⏰ Check timed out for player: $playerName")
-                                sendToMainThread("Zeitüberschreitung beim Spieler-Check")
+                            } catch (e: TimeoutCancellationException) {
+                                if (!result) { // Nur als Fehler loggen wenn wir keine erfolgreiche Antwort hatten
+                                    Log.e(
+                                        "PlayerCheck",
+                                        "⏰ Check timed out for player: $playerName"
+                                    )
+                                    sendToMainThread("Zeitüberschreitung beim Spieler-Check")
+                                    return@withContext false
+                                }
+                            } catch (e: Exception) {
+                                Log.e("PlayerCheck", "❌ Error processing check response", e)
+                                sendToMainThread("Fehler beim Verarbeiten der Antwort: ${e.message}")
                                 return@withContext false
                             }
                         } catch (e: Exception) {
-                            Log.e("PlayerCheck", "❌ Error processing check response", e)
-                            sendToMainThread("Fehler beim Verarbeiten der Antwort: ${e.message}")
+                            Log.e("PlayerCheck", "❌ General error during check", e)
+                            sendToMainThread("Fehler beim Spieler-Check: ${e.message}")
                             return@withContext false
                         }
-                    } catch (e: Exception) {
-                        Log.e("PlayerCheck", "❌ General error during check", e)
-                        sendToMainThread("Fehler beim Spieler-Check: ${e.message}")
-                        return@withContext false
                     }
+                } ?: run {
+                    Log.e("PlayerCheck", "No active session for player check")
+                    sendToMainThread("Keine aktive Verbindung für Spieler-Check")
+                    return@withContext false
                 }
-            } ?: run {
-                Log.e("PlayerCheck", "No active session for player check")
-                sendToMainThread("Keine aktive Verbindung für Spieler-Check")
+            } catch (e: Exception) {
+                Log.e("PlayerCheck", "Fatal error in player check", e)
+                sendToMainThread("Schwerwiegender Fehler beim Spieler-Check")
                 return@withContext false
             }
-        } catch (e: Exception) {
-            Log.e("PlayerCheck", "Fatal error in player check", e)
-            sendToMainThread("Schwerwiegender Fehler beim Spieler-Check")
-            return@withContext false
-        }
 
-        return@withContext result
-    }
+            return@withContext result
+        }
 
     private fun launchMessageCollectors() {
         sessionOrNull?.let { s ->
@@ -329,18 +350,9 @@ class StompConnectionManager(
         } catch (e: Exception) {
             sendToMainThread("⚠️ Fehler beim Verarbeiten der Farbänderung: ${e.message}")
         }
-    }    fun sendGameStart(gameId: Int, playerName: String) {
-        sessionOrNull?.let {
-            scope.launch {
-                try {
-                    it.sendText("/app/game/start/$gameId", "")
-                    sendToMainThread("📨 Spielstart gesendet, Player=$playerName")
-                } catch (e: Exception) {
-                    sendToMainThread("❌ Fehler beim Senden des Spielstarts: \\${e.message}")
-                }
-            }
-        } ?: sendToMainThread(NO_CONNECTION_MESSAGE)
-    }    suspend fun sendLobbyLeave(playerName: String, lobbyID: String) {
+    }
+
+    suspend fun sendLobbyLeave(playerName: String, lobbyID: String) {
         val currentSession = sessionOrNull ?: run {
             sendToMainThread(NO_CONNECTION_MESSAGE)
             return
@@ -354,7 +366,9 @@ class StompConnectionManager(
         } catch (e: Exception) {
             Log.e("Lobby Error", "Error while leaving lobby: ${e.message}")
         }
-    }    suspend fun sendLobbyCreate(playerName: String): String? = withContext(ioDispatcher) {
+    }
+
+    suspend fun sendLobbyCreate(playerName: String): String? = withContext(ioDispatcher) {
         val currentSession: StompSession = sessionOrNull ?: run {
             sendToMainThread(NO_CONNECTION_MESSAGE)
             return@withContext null
@@ -367,16 +381,6 @@ class StompConnectionManager(
             sendToMainThread("Lobby wird erstellt")
             val response = flow?.first()
             val lobbyId = JSONObject(response).getString("lobbyID")
-            scope.launch {
-                val updateFlow = sessionOrNull?.subscribeText("/topic/$lobbyId")
-                updateFlow?.collect { payload ->
-                    try {
-                        _lobbyUpdates.emit(gson.fromJson(payload, LobbyResponseMessage::class.java))
-                    } catch (e: JSONException) {
-                        Log.e("LobbyFlow", "Update parse error", e)
-                    }
-                }
-            }
             lobbyId
         } catch (e: Exception) {
             Log.e("Debugging", "Error while creating lobby: ${e.message}")
@@ -891,11 +895,4 @@ class StompConnectionManager(
             }
         } ?: sendToMainThread(NO_CONNECTION_SUBSCRIPTION_MESSAGE)
     }
-}
-
-/**
- * Interface für die Move-Callbacks
- */
-fun interface MoveCallbacks {
-    fun onPlayersChanged()
 }

@@ -7,12 +7,16 @@ import android.os.Looper
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -94,10 +98,7 @@ class LobbyActivity : ComponentActivity() {
             LobbyScreen(viewModel = lobbyViewModel)
         }
     }
-    
-    /**
-     * Helper method to navigate to the BoardActivity
-     */
+
     private fun navigateToBoardActivity() {
         Log.d("LobbyActivity", "🎮 Navigating to BoardActivity...")
         val intent = Intent(this@LobbyActivity, BoardActivity::class.java).apply {
@@ -158,31 +159,31 @@ class LobbyActivity : ComponentActivity() {
             Button(
                 onClick = {
                     if (isStartingGame.value) return@Button // Verhindere Mehrfachklicks
-                    
-                    // UI-Status aktualisieren
                     isStartingGame.value = true
-                    
                     // Spiel auf dem Backend starten
                     Log.d("LobbyActivity", "Spielstart-Button gedrückt, starte Spiel auf dem Server...")
                     viewModel.startGame()
-                    
-                    // Zusätzliche Sicherheit: Falls das isGameStarted-Flag nicht korrekt gesetzt wird,
-                    // führen wir nach einer kurzen Verzögerung trotzdem die Navigation aus
                     Handler(Looper.getMainLooper()).postDelayed({
                         if (!viewModel.isGameStarted.value) {
                             Log.d("LobbyActivity", "⏱️ Timeout - Keine Bestätigung vom Server erhalten, leite trotzdem weiter...")
                             viewModel.forceTriggerGameStart()
                         }
-                        // Reset status falls nötig
                         isStartingGame.value = false
-                    }, 3000) // 3 Sekunden Timeout
+                    }, 3000)
                 },
                 modifier = Modifier
-                    .padding(top = 16.dp)
+                    .fillMaxWidth(0.4f)
+                    .padding(8.dp)
                     .align(Alignment.CenterHorizontally),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White.copy(alpha = 0.5f),
+                    contentColor = Color.White
+                ),
+                border = BorderStroke(1.dp, Color.White),
                 enabled = !isStartingGame.value
             ) {
-                Text(if (isStartingGame.value) "Spiel wird gestartet..." else "Spiel starten")
+                Text(if (isStartingGame.value) "Spiel wird gestartet..." else "Spiel starten", fontSize = 20.sp)
             }
             Button(
                 onClick = {
@@ -190,11 +191,18 @@ class LobbyActivity : ComponentActivity() {
                     finish()
                 },
                 modifier = Modifier
-                    .padding(top = 16.dp)
+                    .fillMaxWidth(0.4f)
+                    .padding(8.dp)
                     .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 30.dp)
+                    .padding(bottom = 30.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White.copy(alpha = 0.5f),
+                    contentColor = Color.White
+                ),
+                border = BorderStroke(1.dp, Color.White)
             ) {
-                Text("Lobby verlassen")
+                Text("Lobby verlassen", fontSize = 20.sp)
             }
         }
     }
