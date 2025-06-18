@@ -61,51 +61,52 @@ class LobbyViewModel(
         updatesJob = viewModelScope.launch {
             try {
                 session.subscribeText("/topic/$lobbyId").collect { payload ->
-                    val json = JSONObject(payload)
-                    // Prüfe auf vollständige Spielerliste (LobbyUpdateMessage)
-                    if (json.has("player1")) {
-                        val players = listOfNotNull(
-                            json.optString("player1").takeIf { !it.isNullOrBlank() },
-                            json.optString("player2").takeIf { !it.isNullOrBlank() },
-                            json.optString("player3").takeIf { !it.isNullOrBlank() },
-                            json.optString("player4").takeIf { !it.isNullOrBlank() }
-                        )
-                        _players.value = players
-                        // Prüfe, ob das Spiel gestartet ist
-                        if (json.has("isStarted")) {
-                            val isStarted = json.getBoolean("isStarted")
-                            Log.d(
-                                "LobbyViewModel",
-                                "🔍 isStarted vom Server empfangen: $isStarted (aktuell: ${_isGameStarted.value})"
+                    try {
+                        Log.d("LobbyViewModel", "📩 Update Message received: $payload")
+                        val json = JSONObject(payload)
+                        
+                        // Handle LobbyUpdateMessage format
+                        if (json.has("player1")) {
+                            val players = listOfNotNull(
+                                json.optString("player1").takeIf { it.isNotBlank() },
+                                json.optString("player2").takeIf { it.isNotBlank() },
+                                json.optString("player3").takeIf { it.isNotBlank() },
+                                json.optString("player4").takeIf { it.isNotBlank() }
                             )
-                            if (isStarted && !_isGameStarted.value) {
-                                Log.d(
-                                    "LobbyViewModel",
-                                    "🎮 Spiel wurde vom Server gestartet! Setze isGameStarted = true"
-                                )
-                                _isGameStarted.value = true
-                            }
-                        } else {
-                            Log.d(
-                                "LobbyViewModel",
-                                "⚠️ isStarted-Feld fehlt in der Server-Antwort: $payload"
-                            )
-                        }
-                    }
-                    // Prüfe auf einzelne Join-Response (LobbyResponseMessage)
-                    else if (json.has("playerName")) {
-                        val playerName = json.getString("playerName")
-                        _players.update { currentPlayers ->
-                            if (!currentPlayers.contains(playerName)) {
-                                currentPlayers + playerName
-                            } else {
-                                currentPlayers
+                            
+                            Log.d("LobbyViewModel", "👥 Updated player list: $players")
+                            _players.value = players
+
+                            // Check if game is started
+                            if (json.has("isStarted")) {
+                                val isStarted = json.getBoolean("isStarted")
+                                Log.d("LobbyViewModel", "🎮 Game start status: $isStarted")
+                                if (isStarted && !_isGameStarted.value) {
+                                    Log.d("LobbyViewModel", "✨ Game is now started! Setting isGameStarted = true")
+                                    _isGameStarted.value = true
+                                }
                             }
                         }
+                        // Handle single player update (LobbyResponseMessage format)
+                        else if (json.has("playerName")) {
+                            val playerName = json.getString("playerName")
+                            if (playerName.isNotBlank()) {
+                                _players.update { currentPlayers ->
+                                    if (!currentPlayers.contains(playerName)) {
+                                        currentPlayers + playerName
+                                    } else {
+                                        currentPlayers
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("LobbyViewModel", "❌ Error parsing update message", e)
+                        Log.e("LobbyViewModel", "Problematic payload: $payload")
                     }
                 }
             } catch (e: Exception) {
-                Log.e("LobbyViewModel", "Error in updates flow", e)
+                Log.e("LobbyViewModel", "❌ Error in updates subscription", e)
             }
         }
     }

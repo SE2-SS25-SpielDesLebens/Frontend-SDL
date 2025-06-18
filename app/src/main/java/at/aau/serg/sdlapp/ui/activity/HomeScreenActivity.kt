@@ -164,6 +164,7 @@ class HomeScreenActivity : ComponentActivity() {
                             lobbyId = it
                             showWarning = false // Fehlermeldung zurücksetzen, wenn Nutzer tippt
                         },
+                        modifier = Modifier.focusRequester(focusRequester),
                         placeholder = {
                             Text(
                                 text = "Lobby-ID eingeben",

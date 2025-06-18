@@ -3,8 +3,6 @@ package at.aau.serg.sdlapp.network
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.compose.material3.carousel.rememberCarouselState
-import at.aau.serg.sdlapp.model.player.Player
 import at.aau.serg.sdlapp.network.message.MoveMessage
 import at.aau.serg.sdlapp.network.message.OutputMessage
 import at.aau.serg.sdlapp.network.message.PlayerListMessage
@@ -17,15 +15,9 @@ import at.aau.serg.sdlapp.network.message.job.JobRequestMessage
 import at.aau.serg.sdlapp.network.message.lobby.LobbyRequestMessage
 import at.aau.serg.sdlapp.network.message.lobby.LobbyResponseMessage
 import com.google.gson.Gson
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.hildan.krossbow.stomp.StompClient
 import org.hildan.krossbow.stomp.StompSession
 import org.hildan.krossbow.stomp.sendText
@@ -33,10 +25,10 @@ import org.hildan.krossbow.stomp.subscribeText
 import org.hildan.krossbow.websocket.okhttp.OkHttpWebSocketClient
 import org.json.JSONException
 import org.json.JSONObject
+import kotlin.coroutines.cancellation.CancellationException
 
-//
 //private const val WEBSOCKET_URI = "ws://se2-demo.aau.at:53217/websocket"
-private const val WEBSOCKET_URI = "ws://192.168.8.144:8080/websocket-broker/websocket"
+private const val WEBSOCKET_URI = "ws://10.0.2.2:8080/websocket-broker/websocket"
 
 //private const val WEBSOCKET_URI = "ws://192.168.8.140:8080/websocket-broker/websocket" //for testing
 private const val NO_CONNECTION_MESSAGE = "Keine Verbindung aktiv"
@@ -73,8 +65,6 @@ class StompConnectionManager(
     private var shouldReconnect = true
     private val maxReconnectAttempts = 5
     private var reconnectAttempts = 0
-
-
     /**
      * Gibt die aktuelle Session zurück, falls verbunden, sonst null.
      */
@@ -116,11 +106,20 @@ class StompConnectionManager(
         val message = LobbyRequestMessage(playerName)
         val json = gson.toJson(message)
         Log.d("Debugging", "Session: $sessionOrNull, Player: $playerName")
-        val session = sessionOrNull
-        if (session != null) {
-            session.sendText("/app/players/check", json)
-            Log.d("Debugging", "sent text")
-            return@withContext launchPlayerCheckCollector(playerName)
+        val currentSession = sessionOrNull
+        if (currentSession != null) {
+            // Zuerst Collector starten
+            val collector = scope.async {
+                launchPlayerCheckCollector(playerName)
+            }
+            
+            // Dann die Nachricht senden
+            delay(100) // Kurze Verzögerung um sicherzustellen, dass der Collector aktiv ist
+            Log.d("Debugging", "Sending check request to /app/players/check")
+            sessionOrNull?.sendText("/app/players/check", json)
+            
+            // Auf das Ergebnis warten
+            return@withContext collector.await()
         } else {
             sendToMainThread(NO_CONNECTION_MESSAGE)
             return@withContext false
@@ -130,34 +129,79 @@ class StompConnectionManager(
     private suspend fun launchPlayerCheckCollector(playerName: String) : Boolean = withContext(ioDispatcher) {
         var result = false
         var parsedPlayer = ""
-        Log.d("Debugging", "got to method launchPlayerCheckCollector")
+        Log.d("Debugging", "Starting player check collector for: $playerName")
+        
         try {
             sessionOrNull?.let { s->
-                // Korrekter Pfad für user-specific queues in Spring's STOMP
-                val subscription = s.subscribeText("/user/queue/player/$playerName/check")
-                try {
-                    val msg = subscription.first()
-                    Log.d("Debugging", "Received message: $msg")
-                    val json = JSONObject(msg)
-                    result = json.getBoolean("wasSuccessful")
-                    parsedPlayer = json.getString("playerName")
-                } catch (e: Exception) {
-                    Log.e("Registration", "Error processing message: ${e.message}")
-                    throw e
-                } finally {
+                withContext(ioDispatcher) {
                     try {
-                        subscription.collect {} // Clean up the subscription
+                        val subscription = s.subscribeText("/user/queue/player/check")
+                        Log.d("PlayerCheck", "Subscribed to /user/queue/player/check")
+                        
+                        try {
+                            withTimeout(10000) { // 10 Sekunden Timeout
+                                try {
+                                    var found = false
+                                    subscription.collect { msg ->
+                                        if (!found) { // Verarbeite nur wenn noch nicht gefunden
+                                            Log.d("PlayerCheck", "✅ Received player check response: $msg")
+                                            
+                                            val json = JSONObject(msg)
+                                            val wasSuccessful = json.getBoolean("wasSuccessful")
+                                            parsedPlayer = json.getString("playerName")
+                                            
+                                            // Wenn die Nachricht für diesen Spieler ist
+                                            if (parsedPlayer == playerName) {
+                                                Log.d("PlayerCheck", "Found matching response for $playerName: $wasSuccessful")
+                                                result = wasSuccessful
+                                                if (!result) {
+                                                    Log.d("PlayerCheck", "⚠️ Player check failed for $playerName")
+                                                    sendToMainThread("Spieler-Check fehlgeschlagen")
+                                                }
+                                                found = true
+                                                throw CancellationException("Message found", null)// Beende den Flow aktiv
+                                            } else {
+                                                Log.d("PlayerCheck", "Ignoring response for different player: $parsedPlayer")
+                                            }
+                                        }
+                                    }
+                                } catch (e: CancellationException) {
+                                    if (e.message == "Message found") {
+                                        Log.d("PlayerCheck", "Successfully completed player check")
+                                    } else {
+                                        throw e
+                                    }
+                                }
+                            }
+                        } catch (e: TimeoutCancellationException) {
+                            if (!result) { // Nur als Fehler loggen wenn wir keine erfolgreiche Antwort hatten
+                                Log.e("PlayerCheck", "⏰ Check timed out for player: $playerName")
+                                sendToMainThread("Zeitüberschreitung beim Spieler-Check")
+                                return@withContext false
+                            }
+                        } catch (e: Exception) {
+                            Log.e("PlayerCheck", "❌ Error processing check response", e)
+                            sendToMainThread("Fehler beim Verarbeiten der Antwort: ${e.message}")
+                            return@withContext false
+                        }
                     } catch (e: Exception) {
-                        Log.d("Debugging", "Subscription cleanup: ${e.message}")
+                        Log.e("PlayerCheck", "❌ General error during check", e)
+                        sendToMainThread("Fehler beim Spieler-Check: ${e.message}")
+                        return@withContext false
                     }
                 }
+            } ?: run {
+                Log.e("PlayerCheck", "No active session for player check")
+                sendToMainThread("Keine aktive Verbindung für Spieler-Check")
+                return@withContext false
             }
-            Log.d("Debugging", "Result from JSON: $result")
-            return@withContext if(playerName == parsedPlayer) result else false
         } catch (e: Exception) {
-            Log.e("Registration", "Error checking registration", e)
+            Log.e("PlayerCheck", "Fatal error in player check", e)
+            sendToMainThread("Schwerwiegender Fehler beim Spieler-Check")
             return@withContext false
         }
+
+        return@withContext result
     }
 
     private fun launchMessageCollectors() {
@@ -292,53 +336,47 @@ class StompConnectionManager(
         } catch (e: Exception) {
             sendToMainThread("⚠️ Fehler beim Verarbeiten der Farbänderung: ${e.message}")
         }
-    }
-
-    fun sendGameStart(gameId: Int, playerName: String) {
+    }    fun sendGameStart(gameId: Int, playerName: String) {
         sessionOrNull?.let {
             scope.launch {
                 try {
-                    session?.sendText("/app/game/start/$gameId", "")
+                    it.sendText("/app/game/start/$gameId", "")
                     sendToMainThread("📨 Spielstart gesendet, Player=$playerName")
                 } catch (e: Exception) {
                     sendToMainThread("❌ Fehler beim Senden des Spielstarts: \\${e.message}")
                 }
             }
         } ?: sendToMainThread(NO_CONNECTION_MESSAGE)
-    }
-
-    suspend fun sendLobbyLeave(playerName: String, lobbyID: String) {
-        val session = sessionOrNull ?: run {
+    }    suspend fun sendLobbyLeave(playerName: String, lobbyID: String) {
+        val currentSession = sessionOrNull ?: run {
             sendToMainThread(NO_CONNECTION_MESSAGE)
             return
         }
         try {
             val request = LobbyRequestMessage(playerName)
             val json = gson.toJson(request)
-            session.sendText("/app/$lobbyID/leave", json)
+            currentSession.sendText("/app/$lobbyID/leave", json)
             sendToMainThread("Lobby wird verlassen")
 
         } catch (e: Exception) {
             Log.e("Lobby Error", "Error while leaving lobby: ${e.message}")
         }
-    }
-
-    suspend fun sendLobbyCreate(playerName: String): String? = withContext(ioDispatcher) {
-        val session: StompSession = sessionOrNull ?: run {
+    }    suspend fun sendLobbyCreate(playerName: String): String? = withContext(ioDispatcher) {
+        val currentSession: StompSession = sessionOrNull ?: run {
             sendToMainThread(NO_CONNECTION_MESSAGE)
             return@withContext null
         }
         try {
             val request = LobbyRequestMessage(playerName)
             val json = gson.toJson(request)
-            val flow = session.subscribeText("/user/queue/lobby/created")
-            session.sendText("/app/lobby/create", json)
+            val flow = sessionOrNull?.subscribeText("/user/queue/lobby/created")
+            sessionOrNull?.sendText("/app/lobby/create", json)
             sendToMainThread("Lobby wird erstellt")
-            val response = flow.first()
+            val response = flow?.first()
             val lobbyId = JSONObject(response).getString("lobbyID")
             scope.launch {
-                val updateFlow = session.subscribeText("/topic/$lobbyId")
-                updateFlow.collect { payload ->
+                val updateFlow = sessionOrNull?.subscribeText("/topic/$lobbyId")
+                updateFlow?.collect { payload ->
                     try {
                         _lobbyUpdates.emit(gson.fromJson(payload, LobbyResponseMessage::class.java))
                     } catch (e: JSONException) {
@@ -403,7 +441,7 @@ class StompConnectionManager(
                 try {
                     val dest = "/topic/$gameId/jobs/$playerName"
                     // Warte auf genau eine Nachricht mit den beiden Jobs
-                    val rawMsg = session?.subscribeText(dest)?.first()
+                    val rawMsg = sessionOrNull?.subscribeText(dest)?.first()
                     val jobs = gson.fromJson(rawMsg, Array<JobMessage>::class.java).toList()
                     // Callback auf Main-Thread
                     withContext(mainDispatcher) {
@@ -422,7 +460,7 @@ class StompConnectionManager(
             val json = gson.toJson(message)
             scope.launch {
                 try {
-                    session?.sendText("/app/move", json)
+                    sessionOrNull?.sendText("/app/move", json)
                     sendToMainThread("✅ Spielzug gesendet")
                 } catch (e: Exception) {
                     sendToMainThread("❌ Fehler beim Senden (move): ${e.message}")
@@ -440,7 +478,7 @@ class StompConnectionManager(
             sendToMainThread("🎲 Sende Würfelzug $dice von Feld $currentFieldIndex")
             scope.launch {
                 try {
-                    session?.sendText("/app/move", json)
+                    sessionOrNull?.sendText("/app/move", json)
                     sendToMainThread("✅ Spielzug gesendet (von Feld $currentFieldIndex)")
                 } catch (e: Exception) {
                     sendToMainThread("❌ Fehler beim Senden des Spielzugs: ${e.message}")
@@ -458,7 +496,7 @@ class StompConnectionManager(
             val json = gson.toJson(message)
             scope.launch {
                 try {
-                    session?.sendText("/app/chat", json)
+                    sessionOrNull?.sendText("/app/chat", json)
                     sendToMainThread("✅ Nachricht gesendet")
                 } catch (e: Exception) {
                     sendToMainThread("❌ Fehler beim Senden (chat): ${e.message}")
@@ -476,7 +514,7 @@ class StompConnectionManager(
             scope.launch {
                 try {
                     // Leere Nachricht an diesen STOMP-Endpunkt
-                    session?.sendText("/app/game/createJobRepo/$gameId", "")
+                    sessionOrNull?.sendText("/app/game/createJobRepo/$gameId", "")
                 } catch (e: Exception) {
                     sendToMainThread("❌ Fehler beim Anfordern des Job-Repos: ${e.message}")
                 }
@@ -494,7 +532,7 @@ class StompConnectionManager(
             scope.launch {
                 try {
                     val destination = "/app/jobs/$gameId/$playerName/request"
-                    session?.sendText(destination, json)
+                    sessionOrNull?.sendText(destination, json)
 
                 } catch (e: Exception) {
                     sendToMainThread("❌ Fehler bei Jobanfrage: ${e.message}")
@@ -509,7 +547,7 @@ class StompConnectionManager(
             scope.launch {
                 try {
                     val destination = "/app/jobs/$gameId/$playerName/select"
-                    session?.sendText(destination, json)
+                    sessionOrNull?.sendText(destination, json)
                 } catch (e: Exception) {
                     sendToMainThread("❌ Fehler beim Senden der Jobauswahl: ${e.message}")
                 }
@@ -525,7 +563,7 @@ class StompConnectionManager(
             sendToMainThread("👥 Frage aktive Spieler ab...")
             scope.launch {
                 try {
-                    session?.sendText("/app/move", json)
+                    sessionOrNull?.sendText("/app/move", json)
                     sendToMainThread("✅ Anfrage für Spielerliste gesendet")
                 } catch (e: Exception) {
                     sendToMainThread("❌ Fehler beim Anfragen der Spielerliste: ${e.message}")
@@ -547,7 +585,7 @@ class StompConnectionManager(
         sessionOrNull?.let {
             scope.launch {
                 try {
-                    session?.sendText(destination, payload)
+                    sessionOrNull?.sendText(destination, payload)
                     sendToMainThread("✅ Nachricht an $destination gesendet")
                 } catch (e: Exception) {
                     sendToMainThread("❌ Fehler beim Senden an $destination: ${e.message}")
@@ -595,7 +633,7 @@ class StompConnectionManager(
         shouldReconnect = false
         scope.launch {
             try {
-                session?.disconnect()
+                sessionOrNull?.disconnect()
                 isConnected = false
                 onConnectionStateChanged?.invoke(false)
                 sendToMainThread("✓ Verbindung zum Server getrennt")
@@ -611,7 +649,7 @@ class StompConnectionManager(
             scope.launch {
                 try {
                     println("   → Sende leere Nachricht an /app/game/createHouseRepo/$gameId")
-                    session?.sendText("/app/game/createHouseRepo/$gameId", "")
+                    sessionOrNull?.sendText("/app/game/createHouseRepo/$gameId", "")
                     println("   ✓ Anfrage erfolgreich gesendet")
                 } catch (e: Exception) {
                     println("   ✗ Fehler beim Anfordern des House-Repos: ${e.message}")
@@ -631,7 +669,7 @@ class StompConnectionManager(
         sessionOrNull?.let {
             scope.launch {
                 try {
-                    val rawMsg = session?.subscribeText(dest)?.first()
+                    val rawMsg = sessionOrNull?.subscribeText(dest)?.first()
                     println("   ← rawMsg: $rawMsg")
                     val houses = gson.fromJson(rawMsg, Array<HouseMessage>::class.java).toList()
                     println("   ✓ Parsed houses: ${houses.map { it.bezeichnung }}")
@@ -660,7 +698,7 @@ class StompConnectionManager(
                 try {
                     val destination = "/app/houses/$gameId/$playerName/choose"
                     println("   → Sende Kaufanfrage an $destination mit Payload: $json")
-                    session?.sendText(destination, json)
+                    sessionOrNull?.sendText(destination, json)
                     println("   ✓ Kaufanfrage gesendet")
                 } catch (e: Exception) {
                     println("   ✗ Fehler beim Senden der Kaufanfrage: ${e.message}")
@@ -683,7 +721,7 @@ class StompConnectionManager(
                 try {
                     val destination = "/app/houses/$gameId/$playerName/choose"
                     println("   → Sende Verkaufsanfrage an $destination mit Payload: $json")
-                    session?.sendText(destination, json)
+                    sessionOrNull?.sendText(destination, json)
                     println("   ✓ Verkaufsanfrage gesendet")
                 } catch (e: Exception) {
                     println("   ✗ Fehler beim Senden der Verkaufsanfrage: ${e.message}")
@@ -704,7 +742,7 @@ class StompConnectionManager(
                 try {
                     val destination = "/app/houses/$gameId/$playerName/finalize"
                     println("   → Sende Finalisierungsanfrage an $destination mit Payload: $json")
-                    session?.sendText(destination, json)
+                    sessionOrNull?.sendText(destination, json)
                     println("   ✓ Finalisierungsanfrage gesendet")
                 } catch (e: Exception) {
                     println("   ✗ Fehler beim Senden der Finalisierungsanfrage: ${e.message}")
@@ -730,7 +768,7 @@ class StompConnectionManager(
             scope.launch {
                 try {
                     // warte auf genau eine Nachricht
-                    val raw = session?.subscribeText(dest)?.first()
+                    val raw = sessionOrNull?.subscribeText(dest)?.first()
                     println("   ← Confirmation raw: $raw")
                     if (raw != null) {
                         // parse single HouseMessage
@@ -757,7 +795,7 @@ class StompConnectionManager(
             scope.launch {
                 try {
                     sendToMainThread("📍 Fordere Spielerpositionen vom Server an")
-                    session?.sendText("/app/players/positions/request", "{}")
+                    sessionOrNull?.sendText("/app/players/positions/request", "{}")
                 } catch (e: Exception) {
                     sendToMainThread("❌ Fehler beim Anfordern der Spielerpositionen: ${e.message}")
                 }
@@ -810,7 +848,7 @@ class StompConnectionManager(
                     // 3. Beitrittsanfrage senden
                     val message = StompMessage(playerName = playerName, gameId = lobbyId)
                     val json = gson.toJson(message)
-                    session?.sendText("/app/game/$lobbyId/join", json)
+                    sessionOrNull?.sendText("/app/game/$lobbyId/join", json)
                     sendToMainThread("✅ Beitrittsanfrage für Spiel in Lobby $lobbyId gesendet")
                 } catch (e: Exception) {
                     sendToMainThread("❌ Fehler beim Senden der Beitrittsanfrage: ${e.message}")
@@ -852,7 +890,7 @@ class StompConnectionManager(
             val json = gson.toJson(message)
             scope.launch {
                 try {
-                    session?.sendText("/app/player/color", json)
+                    sessionOrNull?.sendText("/app/player/color", json)
                     sendToMainThread("🎨 Farbauswahl '$color' gesendet")
                 } catch (e: Exception) {
                     sendToMainThread("❌ Fehler beim Senden der Farbauswahl: ${e.message}")

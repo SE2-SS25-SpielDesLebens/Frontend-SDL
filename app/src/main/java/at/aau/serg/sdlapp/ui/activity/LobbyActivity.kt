@@ -43,6 +43,7 @@ class LobbyActivity : ComponentActivity() {
     private lateinit var session: StompSession
     private val viewModel by lazy { getSharedViewModel() }
     private val scope = CoroutineScope(Dispatchers.IO)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -66,6 +67,7 @@ class LobbyActivity : ComponentActivity() {
             return
         }
 
+
         // GameStart-Listener für direkte Benachrichtigungen vom Server einrichten
         viewModel.myStomp.value?.let { stompManager ->
             stompManager.subscribeToGameStatus(lobbyID) {
@@ -73,6 +75,8 @@ class LobbyActivity : ComponentActivity() {
                 lobbyViewModel.forceTriggerGameStart()
             }
         }
+
+        lobbyViewModel.initialize(lobbyID, playerName)
 
         // Observe isGameStarted to handle navigation outside of Composable
         scope.launch {
@@ -84,7 +88,7 @@ class LobbyActivity : ComponentActivity() {
             }
         }
 
-        lobbyViewModel.initialize(lobbyID, playerName)
+
 
         setContent {
             LobbyScreen(viewModel = lobbyViewModel)
@@ -102,7 +106,9 @@ class LobbyActivity : ComponentActivity() {
         }
         startActivity(intent)
         finish() // Close LobbyActivity
-    }    @Composable
+    }
+
+    @Composable
     fun LobbyScreen(viewModel: LobbyViewModel) {
         val textColor = Color.White
         val players by viewModel.players.collectAsState()
