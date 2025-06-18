@@ -108,17 +108,13 @@ class StompConnectionManager(
         Log.d("Debugging", "Session: $sessionOrNull, Player: $playerName")
         val currentSession = sessionOrNull
         if (currentSession != null) {
-            // Zuerst Collector starten
             val collector = scope.async {
                 launchPlayerCheckCollector(playerName)
             }
-            
-            // Dann die Nachricht senden
-            delay(100) // Kurze Verzögerung um sicherzustellen, dass der Collector aktiv ist
-            Log.d("Debugging", "Sending check request to /app/players/check")
+
+            delay(100)
             sessionOrNull?.sendText("/app/players/check", json)
-            
-            // Auf das Ergebnis warten
+
             return@withContext collector.await()
         } else {
             sendToMainThread(NO_CONNECTION_MESSAGE)
@@ -136,26 +132,23 @@ class StompConnectionManager(
                 withContext(ioDispatcher) {
                     try {
                         val subscription = s.subscribeText("/user/queue/player/check")
-                        Log.d("PlayerCheck", "Subscribed to /user/queue/player/check")
                         
                         try {
                             withTimeout(10000) { // 10 Sekunden Timeout
                                 try {
                                     var found = false
                                     subscription.collect { msg ->
-                                        if (!found) { // Verarbeite nur wenn noch nicht gefunden
+                                        if (!found) {
                                             Log.d("PlayerCheck", "✅ Received player check response: $msg")
                                             
                                             val json = JSONObject(msg)
                                             val wasSuccessful = json.getBoolean("wasSuccessful")
                                             parsedPlayer = json.getString("playerName")
-                                            
-                                            // Wenn die Nachricht für diesen Spieler ist
+
                                             if (parsedPlayer == playerName) {
-                                                Log.d("PlayerCheck", "Found matching response for $playerName: $wasSuccessful")
                                                 result = wasSuccessful
                                                 if (!result) {
-                                                    Log.d("PlayerCheck", "⚠️ Player check failed for $playerName")
+                                                    Log.e("PlayerCheck", "⚠️ Player check failed for $playerName")
                                                     sendToMainThread("Spieler-Check fehlgeschlagen")
                                                 }
                                                 found = true
