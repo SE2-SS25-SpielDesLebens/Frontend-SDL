@@ -27,8 +27,8 @@ import org.json.JSONException
 import org.json.JSONObject
 import kotlin.coroutines.cancellation.CancellationException
 
-//private const val WEBSOCKET_URI = "ws://se2-demo.aau.at:53217/websocket"
-private const val WEBSOCKET_URI = "ws://10.0.2.2:8080/websocket-broker/websocket"
+private const val WEBSOCKET_URI = "ws://se2-demo.aau.at:53217/websocket"
+//private const val WEBSOCKET_URI = "ws://10.0.2.2:8080/websocket-broker/websocket"
 
 //private const val WEBSOCKET_URI = "ws://192.168.8.140:8080/websocket-broker/websocket" //for testing
 private const val NO_CONNECTION_MESSAGE = "Keine Verbindung aktiv"
@@ -125,7 +125,7 @@ class StompConnectionManager(
     private suspend fun launchPlayerCheckCollector(playerName: String) : Boolean = withContext(ioDispatcher) {
         var result = false
         var parsedPlayer = ""
-        Log.d("Debugging", "Starting player check collector for: $playerName")
+        Log.d("PlayerCheck", "Starting player check collector for: $playerName")
         
         try {
             sessionOrNull?.let { s->
@@ -139,7 +139,7 @@ class StompConnectionManager(
                                     var found = false
                                     subscription.collect { msg ->
                                         if (!found) {
-                                            Log.d("PlayerCheck", "✅ Received player check response: $msg")
+                                            Log.d("PlayerCheck", "Received player check response: $msg")
                                             
                                             val json = JSONObject(msg)
                                             val wasSuccessful = json.getBoolean("wasSuccessful")

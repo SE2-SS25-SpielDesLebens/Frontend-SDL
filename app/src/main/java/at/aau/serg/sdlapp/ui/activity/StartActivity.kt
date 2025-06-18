@@ -178,7 +178,6 @@ class StartActivity : ComponentActivity() {
                             scope.launch {
                                 val deferred = stomp.connectAsync(playerName)
                                 val success = deferred.await()
-                                Log.d("Debugging", "success: $success")
                                 if (success) {
                                     showErrorRegistration = false
                                     val intent = Intent(this@StartActivity, HomeScreenActivity::class.java)

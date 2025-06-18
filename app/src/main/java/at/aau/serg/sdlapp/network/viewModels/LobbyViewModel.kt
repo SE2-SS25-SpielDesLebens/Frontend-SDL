@@ -58,55 +58,111 @@ class LobbyViewModel(
 
     private fun startObserving(lobbyId: String) {
         updatesJob?.cancel()
+        Log.d("LobbyViewModel", "🔄 Started Observing Lobby updates for lobby $lobbyId")
+        
+        // Überprüfe Session-Status
+        if (session == null) {
+            Log.e("LobbyViewModel", "❌ Session ist null beim Start des Observings")
+            return
+        }
+        
         updatesJob = viewModelScope.launch {
             try {
-                session.subscribeText("/topic/$lobbyId").collect { payload ->
+                Log.d("LobbyViewModel", "📥 Setting up subscriptions")
+                
+                // Haupt-Topic für Lobby-Updates
+                launch {
                     try {
-                        Log.d("LobbyViewModel", "📩 Update Message received: $payload")
-                        val json = JSONObject(payload)
+                        val topicPath = "/topic/$lobbyId"
+                        Log.d("LobbyViewModel", "📥 Subscribing to main lobby topic: $topicPath")
                         
-                        // Handle LobbyUpdateMessage format
-                        if (json.has("player1")) {
-                            val players = listOfNotNull(
-                                json.optString("player1").takeIf { it.isNotBlank() },
-                                json.optString("player2").takeIf { it.isNotBlank() },
-                                json.optString("player3").takeIf { it.isNotBlank() },
-                                json.optString("player4").takeIf { it.isNotBlank() }
-                            )
+                        session.subscribeText(topicPath).collect { payload ->
+                            Log.d("LobbyViewModel", "📨 Raw message received: $payload")
                             
-                            Log.d("LobbyViewModel", "👥 Updated player list: $players")
-                            _players.value = players
-
-                            // Check if game is started
-                            if (json.has("isStarted")) {
-                                val isStarted = json.getBoolean("isStarted")
-                                Log.d("LobbyViewModel", "🎮 Game start status: $isStarted")
-                                if (isStarted && !_isGameStarted.value) {
-                                    Log.d("LobbyViewModel", "✨ Game is now started! Setting isGameStarted = true")
-                                    _isGameStarted.value = true
-                                }
+                            if (payload.isNullOrBlank()) {
+                                Log.w("LobbyViewModel", "⚠️ Received empty payload")
+                                return@collect
                             }
-                        }
-                        // Handle single player update (LobbyResponseMessage format)
-                        else if (json.has("playerName")) {
-                            val playerName = json.getString("playerName")
-                            if (playerName.isNotBlank()) {
-                                _players.update { currentPlayers ->
-                                    if (!currentPlayers.contains(playerName)) {
-                                        currentPlayers + playerName
-                                    } else {
-                                        currentPlayers
+                            
+                            try {
+                                val json = JSONObject(payload)
+                                Log.d("LobbyViewModel", "✅ Parsed JSON: $json")
+                                
+                                when {
+                                    // LobbyUpdateMessage Format (vom Server)
+                                    json.has("player1") -> {
+                                        Log.d("LobbyViewModel", "📝 Processing LobbyUpdateMessage")
+                                        try {
+                                            val players = listOfNotNull(
+                                                json.optString("player1").takeIf { it.isNotBlank() },
+                                                json.optString("player2").takeIf { it.isNotBlank() },
+                                                json.optString("player3").takeIf { it.isNotBlank() },
+                                                json.optString("player4").takeIf { it.isNotBlank() }
+                                            )
+                                            Log.d("LobbyViewModel", "👥 Player list from update: $players")
+                                            _players.value = players
+                                            
+                                            // Überprüfe Spielstart
+                                            if (json.has("isStarted")) {
+                                                val isStarted = json.getBoolean("isStarted")
+                                                Log.d("LobbyViewModel", "🎮 Game started status: $isStarted")
+                                                if (isStarted && !_isGameStarted.value) {
+                                                    Log.d("LobbyViewModel", "🎯 Game is now started!")
+                                                    _isGameStarted.value = true
+                                                }
+                                            }
+                                        } catch (e: Exception) {
+                                            Log.e("LobbyViewModel", "❌ Error processing player list: ${e.message}")
+                                        }
+                                    }
+                                    // Einzelner Spieler Update
+                                    json.has("playerName") -> {
+                                        Log.d("LobbyViewModel", "👤 Processing player update")
+                                        val playerName = json.getString("playerName")
+                                        if (playerName.isNotBlank()) {
+                                            _players.update { currentPlayers ->
+                                                if (!currentPlayers.contains(playerName)) {
+                                                    Log.d("LobbyViewModel", "➕ Adding new player: $playerName")
+                                                    currentPlayers + playerName
+                                                } else {
+                                                    currentPlayers
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else -> {
+                                        Log.w("LobbyViewModel", "⚠️ Unknown message format: $payload")
                                     }
                                 }
+                            } catch (e: Exception) {
+                                Log.e("LobbyViewModel", "❌ Error processing message", e)
+                                Log.e("LobbyViewModel", "Payload was: $payload")
                             }
                         }
                     } catch (e: Exception) {
-                        Log.e("LobbyViewModel", "❌ Error parsing update message", e)
-                        Log.e("LobbyViewModel", "Problematic payload: $payload")
+                        Log.e("LobbyViewModel", "❌ Error in lobby subscription", e)
+                    }
+                }
+
+                // Separates Topic für Spiel-Status
+                launch {
+                    try {
+                        val statusTopic = "/topic/game/$lobbyId/status"
+                        Log.d("LobbyViewModel", "📥 Subscribing to game status: $statusTopic")
+                        session.subscribeText(statusTopic).collect { msg ->
+                            Log.d("LobbyViewModel", "📨 Received on $statusTopic: $msg")
+                            if (msg.contains("Spiel wurde gestartet")) {
+                                Log.d("LobbyViewModel", "🎮 Game start notification received")
+                                _isGameStarted.value = true
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("LobbyViewModel", "❌ Error in game status subscription", e)
                     }
                 }
             } catch (e: Exception) {
-                Log.e("LobbyViewModel", "❌ Error in updates subscription", e)
+                Log.e("LobbyViewModel", "❌ Fatal error in startObserving", e)
+                Log.e("LobbyViewModel", "Stack trace:", e)
             }
         }
     }
