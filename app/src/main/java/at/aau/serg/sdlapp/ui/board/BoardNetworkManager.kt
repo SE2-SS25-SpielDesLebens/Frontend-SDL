@@ -3,6 +3,7 @@ package at.aau.serg.sdlapp.ui.board
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.widget.Toast
 import at.aau.serg.sdlapp.model.board.Field
 import at.aau.serg.sdlapp.model.player.PlayerManager
@@ -13,6 +14,7 @@ import kotlinx.coroutines.launch
 import org.hildan.krossbow.stomp.subscribeText
 import java.util.Timer
 import java.util.TimerTask
+import at.aau.serg.sdlapp.network.viewModels.*
 
 /**
  * Verwaltet die Netzwerkkommunikation der BoardActivity
@@ -23,19 +25,16 @@ class BoardNetworkManager(
     private val playerName: String,
     private val playerId: String,
     private val callbacks: NetworkCallbacks,
-    private val lobbyId: String? = null // Optional: Lobby-ID für Mehrspieler
+    private val lobbyId: String? = null,
+    private val stompClient: StompConnectionManager// Optional: Lobby-ID für Mehrspieler
 ) {
     // STOMP-Client für die Verbindung zum Backend
-    private val stompClient: StompConnectionManager
+
     
     // Timer für die periodische Aktualisierung der Spielerliste
     private var playerListUpdateTimer: Timer? = null
     
     init {
-        stompClient = StompConnectionManager( { log ->
-            println(log)
-            // In einer vollständigen Implementierung würde man hier ein Log-Fenster einblenden
-        })
         initializeCallbacks()
         
         // Wenn eine Lobby-ID vorhanden ist, sofort verbinden
@@ -133,13 +132,6 @@ class BoardNetworkManager(
                 callbacks.onPlayerPositionsReceived(positions)
             }
         }
-    }
-
-    /**
-     * Stellt eine Verbindung zum Server her
-     */
-    fun connect() {
-        stompClient.connectAsync(playerName)
     }
 
     /**
@@ -269,12 +261,12 @@ class BoardNetworkManager(
             
             // Stelle sicher, dass eine Verbindung besteht
             if (!stompClient.isConnected) {
-                connect()
                 // Kurze Verzögerung für die Verbindung
                 Handler(Looper.getMainLooper()).postDelayed({
                     completeGameJoin(lobbyId)
                 }, 1000)
             } else {
+                Log.e("BoardNetworkManager", "Keine Verbindung möglich")
                 completeGameJoin(lobbyId)
             }
             

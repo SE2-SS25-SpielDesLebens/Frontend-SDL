@@ -47,7 +47,7 @@ class StompConnectionManager(
     private val gson = Gson()
     private val _lobbyUpdates = MutableSharedFlow<LobbyResponseMessage>()
     var isConnected: Boolean = false
-    private val client = StompClient(OkHttpWebSocketClient())
+    private val client: StompClient = StompClient(OkHttpWebSocketClient())
     var onMoveReceived: ((MoveMessage) -> Unit)? = null
     var onConnectionStateChanged: ((Boolean) -> Unit)? = null
     var onConnectionError: ((String) -> Unit)? = null

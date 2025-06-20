@@ -15,14 +15,18 @@ import androidx.activity.ComponentActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.asFlow
 import at.aau.serg.sdlapp.R
 import at.aau.serg.sdlapp.model.board.Field
+import at.aau.serg.sdlapp.network.StompConnectionManager
 import at.aau.serg.sdlapp.network.message.MoveMessage
+import at.aau.serg.sdlapp.network.viewModels.getSharedViewModel
 import at.aau.serg.sdlapp.ui.board.BoardFigureManager
 import at.aau.serg.sdlapp.ui.board.BoardMoveManager
 import at.aau.serg.sdlapp.ui.board.BoardNetworkManager
 import at.aau.serg.sdlapp.ui.board.BoardUIManager
 import com.otaliastudios.zoom.ZoomLayout
+import org.hildan.krossbow.stomp.StompSession
 
 /**
  * Die BoardActivity ist die Hauptaktivität des Spiels und verwaltet die
@@ -41,6 +45,8 @@ class BoardActivity : ComponentActivity(),
     private lateinit var playerName: String
     private lateinit var statsButton: ImageButton
 
+    private lateinit var stompClient: StompConnectionManager
+    private val viewModel by lazy {getSharedViewModel()}
 
     // Manager für verschiedene Aspekte des Spiels
     private lateinit var playerManager: PlayerManager
@@ -52,6 +58,8 @@ class BoardActivity : ComponentActivity(),
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_board)
         enableFullscreen()
+
+        stompClient = viewModel.myStomp.value!!
 
         // UI-Komponenten initialisieren
         initializeUIComponents()
@@ -69,9 +77,6 @@ class BoardActivity : ComponentActivity(),
         updateStatusText()
     }
 
-    /**
-     * Initialisiert die grundlegenden UI-Komponenten
-     */
     private fun initializeUIComponents() {
         zoomLayout = findViewById(R.id.zoomLayout)
         boardImage = findViewById(R.id.boardImag)
@@ -93,7 +98,10 @@ class BoardActivity : ComponentActivity(),
 
         // Lobby-ID aus Intent lesen
         val lobbyId = intent.getStringExtra("lobbyID")
-        Log.d("BoardActivity", "Spieler initialisiert: ID=$playerId, Name=$playerName, Lobby=$lobbyId")
+        Log.d(
+            "BoardActivity",
+            "Spieler initialisiert: ID=$playerId, Name=$playerName, Lobby=$lobbyId"
+        )
     }
 
     /**
@@ -115,7 +123,8 @@ class BoardActivity : ComponentActivity(),
             boardContainer = boardContainer,
             boardImage = boardImage,
             zoomLayout = zoomLayout
-        )        // BoardNetworkManager initialisieren
+        )
+        // BoardNetworkManager initialisieren
         val lobbyId = intent.getStringExtra("lobbyID")
         networkManager = BoardNetworkManager(
             context = this,
@@ -123,7 +132,8 @@ class BoardActivity : ComponentActivity(),
             playerName = playerName,
             playerId = playerId,
             callbacks = this,
-            lobbyId = lobbyId
+            lobbyId = lobbyId,
+            stompClient = stompClient
         )
 
         // Fordere die Board-Daten vom Server an
@@ -441,22 +451,6 @@ class BoardActivity : ComponentActivity(),
             }, 1000) // 1 Sekunde warten, damit die Verbindung stabil ist        } else {
             diceButton.alpha = 0.5f
             Toast.makeText(this, "Verbindung verloren", Toast.LENGTH_SHORT).show()
-            
-            // Versuche nach einer Verzögerung erneut zu verbinden
-            Handler(Looper.getMainLooper()).postDelayed({
-                if (!networkManager.isConnected) {
-                    Log.d("BoardActivity", "Versuche erneut zu verbinden...")
-                    networkManager.connect()
-                }
-            }, 5000) // Nach 5 Sekunden erneut versuchen
-            
-            // Versuche nach einer Verzögerung erneut zu verbinden
-            Handler(Looper.getMainLooper()).postDelayed({
-                if (!networkManager.isConnected) {
-                    Log.d("BoardActivity", "Versuche erneut zu verbinden...")
-                    networkManager.connect()
-                }
-            }, 5000) // Nach 5 Sekunden erneut versuchen
         }
     }
 
@@ -680,41 +674,58 @@ class BoardActivity : ComponentActivity(),
             Log.e("BoardActivity", "❌ Fehler beim Neuladen der Daten: ${e.message}", e)
             Toast.makeText(this, "Fehler beim Neuladen: ${e.message}", Toast.LENGTH_SHORT).show()
         }
-    }    override fun onPlayerPositionsReceived(positions: Map<String, Int>) {
-        Log.d("BoardActivity", "📍 Spielerpositionen vom Server empfangen: ${positions.size} Positionen")
+    }
+
+    override fun onPlayerPositionsReceived(positions: Map<String, Int>) {
+        Log.d(
+            "BoardActivity",
+            "📍 Spielerpositionen vom Server empfangen: ${positions.size} Positionen"
+        )
 
         try {
             val existingPlayerIds = playerManager.getAllPlayerIds()
             val newPlayers = mutableListOf<String>()
-            
+
             // Verarbeite alle erhaltenen Positionen
             positions.forEach { (playerId, fieldIndex) ->
                 // Prüfe, ob es sich um einen neuen Spieler handelt
                 if (!existingPlayerIds.contains(playerId) && playerId != this.playerId) {
                     newPlayers.add(playerId)
                 }
-                
+
                 // Aktualisiere lokale Daten (erstellt auch neue Spieler falls nötig)
                 playerManager.updatePlayerPosition(playerId, fieldIndex)
 
                 // Bewege die Figur auf dem Brett
-                val field = at.aau.serg.sdlapp.model.board.BoardData.board.find { it.index == fieldIndex }
+                val field =
+                    at.aau.serg.sdlapp.model.board.BoardData.board.find { it.index == fieldIndex }
                 if (field != null) {
                     figureManager.moveFigureToPosition(field.x, field.y, playerId)
                     Log.d("BoardActivity", "🚗 Spieler $playerId zu Feld $fieldIndex bewegt")
                 } else {
-                    Log.e("BoardActivity", "❌ Feld $fieldIndex nicht gefunden für Spieler $playerId")
+                    Log.e(
+                        "BoardActivity",
+                        "❌ Feld $fieldIndex nicht gefunden für Spieler $playerId"
+                    )
                 }
             }
-            
+
             // Benachrichtigung über neue Spieler anzeigen
             if (newPlayers.isNotEmpty()) {
                 if (newPlayers.size == 1) {
-                    Toast.makeText(this, "Neuer Spieler beigetreten: ${newPlayers.first()}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this,
+                        "Neuer Spieler beigetreten: ${newPlayers.first()}",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 } else {
-                    Toast.makeText(this, "${newPlayers.size} neue Spieler beigetreten", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this,
+                        "${newPlayers.size} neue Spieler beigetreten",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
-                
+
                 // Spezielle Animation für neue Spieler
                 newPlayers.forEach { newPlayerId ->
                     figureManager.playNewPlayerAnimation(newPlayerId)
@@ -729,11 +740,18 @@ class BoardActivity : ComponentActivity(),
             if (localPlayer != null && positions.containsKey(localPlayer.id)) {
                 val newPosition = positions[localPlayer.id] ?: 0
                 moveManager.setCurrentFieldIndex(newPosition)
-                Log.d("BoardActivity", "🎮 Aktualisiere Position des lokalen Spielers auf Feld $newPosition")
+                Log.d(
+                    "BoardActivity",
+                    "🎮 Aktualisiere Position des lokalen Spielers auf Feld $newPosition"
+                )
             }
 
         } catch (e: Exception) {
-            Log.e("BoardActivity", "❌ Fehler beim Verarbeiten der Spielerpositionen: ${e.message}", e)
+            Log.e(
+                "BoardActivity",
+                "❌ Fehler beim Verarbeiten der Spielerpositionen: ${e.message}",
+                e
+            )
             Toast.makeText(
                 this,
                 "Fehler bei der Aktualisierung der Spielerpositionen",
@@ -747,11 +765,11 @@ class BoardActivity : ComponentActivity(),
      */
     override fun onPlayerColorChanged(playerId: String, colorName: String) {
         Log.d("BoardActivity", "🎨 Spieler $playerId hat Farbe zu $colorName geändert")
-        
+
         try {
             // Aktualisiere das Aussehen der Spielfigur
             figureManager.updateFigureAppearance(playerId)
-            
+
             // Zeige eine Benachrichtigung an
             if (playerId != this.playerId) {
                 Toast.makeText(
