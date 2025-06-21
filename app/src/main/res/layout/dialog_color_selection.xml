@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Wähle deine Farbe"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+        
+    <TextView
+        android:id="@+id/tvColorStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Wähle deine Spielerfarbe aus"
+        android:textSize="14sp"
+        android:textColor="#3F51B5"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+        
+    <!-- Farb-Auswahl Bereich -->
+    <RadioGroup
+        android:id="@+id/rgColors"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="16dp">
+        
+        <RadioButton
+            android:id="@+id/rbRed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Rot"
+            android:textColor="#D32F2F"
+            android:buttonTint="#D32F2F"
+            android:layout_marginEnd="8dp" />
+            
+        <RadioButton
+            android:id="@+id/rbBlue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Blau"
+            android:textColor="#1976D2"
+            android:buttonTint="#1976D2"
+            android:layout_marginEnd="8dp"
+            android:checked="true" />
+            
+        <RadioButton
+            android:id="@+id/rbGreen"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Grün"
+            android:textColor="#388E3C"
+            android:buttonTint="#388E3C"
+            android:layout_marginEnd="8dp" />
+            
+        <RadioButton
+            android:id="@+id/rbYellow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Gelb"
+            android:textColor="#FBC02D"
+            android:buttonTint="#FBC02D" />
+    </RadioGroup>
+    
+    <!-- Vorschau der ausgewählten Farbe -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_marginBottom="16dp">
+        
+        <ImageView
+            android:id="@+id/ivColorPreview"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/car_blue_0"
+            android:contentDescription="Vorschau der ausgewählten Farbe" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnConfirmColor"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Bestätigen"
+        android:padding="12dp" />
+
+</LinearLayout>

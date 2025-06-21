@@ -25,17 +25,23 @@ class BoardUIManager(
     private val layoutInflater: LayoutInflater,
     private val uiCallbacks: UICallbacks
 ) {    /**
-     * Zeigt einen Dialog zur Auswahl des Startpunktes (normal oder Uni) und der Spielerfarbe
-     */    fun showStartChoiceDialog(playerName: String, stompClient: StompConnectionManager) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_start_choice_with_color, null)
+     * Zeigt zwei aufeinanderfolgende Dialoge:
+     * 1. Dialog zur Auswahl der Spielerfarbe
+     * 2. Dialog zur Auswahl des Startpunktes (normal oder Uni)
+     */
+    fun showStartChoiceDialog(playerName: String, stompClient: StompConnectionManager) {
+        showColorSelectionDialog(playerName, stompClient)
+    }
+    
+    /**
+     * Erster Dialog: Auswahl der Spielerfarbe
+     */
+    private fun showColorSelectionDialog(playerName: String, stompClient: StompConnectionManager) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_color_selection, null)
         val dialog = AlertDialog.Builder(context)
             .setView(dialogView)
             .setCancelable(false)
             .create()
-
-        // Statustext für Startpunkt-Auswahl
-        val statusText = dialogView.findViewById<TextView>(R.id.tvStatus)
-        statusText?.text = "Wähle deine Farbe und deinen Startpunkt."
 
         // Radiobuttons für die Farbauswahl
         val redRadioButton = dialogView.findViewById<android.widget.RadioButton>(R.id.rbRed)
@@ -83,13 +89,64 @@ class BoardUIManager(
             }
         }
 
+        // Bestätigungsbutton
+        val confirmButton = dialogView.findViewById<Button>(R.id.btnConfirmColor)
+
+        // Bestätigungsbutton Listener
+        confirmButton.setOnClickListener {
+            try {
+                println("🎨 Farbe $selectedColor bestätigt")
+                
+                // Setze Farbe des Spielers
+                val localPlayerId = playerManager.getLocalPlayer()?.id ?: ""
+                playerManager.setLocalPlayer(localPlayerId, selectedColor)
+                
+                // Sende Farbe an Backend
+                stompClient.sendColorSelection(playerName, selectedColor.name)
+                
+                // Zeige Bestätigung
+                Toast.makeText(context, "Farbe $selectedColor ausgewählt", Toast.LENGTH_SHORT).show()
+                
+                // Schließe diesen Dialog und öffne den Startpunkt-Dialog
+                dialog.dismiss()
+                println("🎨 Farbauswahl-Dialog geschlossen")
+                
+                // Zweiter Dialog für die Startpunktauswahl anzeigen
+                showPositionSelectionDialog(playerName, stompClient, selectedColor)
+                
+            } catch (e: Exception) {
+                println("❌❌❌ Fehler bei der Farbauswahl: ${e.message}")
+                e.printStackTrace()
+                // Dialog trotzdem schließen, damit der Benutzer nicht feststeckt
+                dialog.dismiss()
+            }
+        }
+
+        // Dialog anzeigen
+        dialog.show()
+    }
+      /**
+     * Zweiter Dialog: Auswahl des Startpunktes
+     */
+    private fun showPositionSelectionDialog(playerName: String, stompClient: StompConnectionManager, selectedColor: CarColor) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_position_selection, null)
+        val dialog = AlertDialog.Builder(context)
+            .setView(dialogView)
+            .setCancelable(false)
+            .create()
+            
+        // Vorschau der gewählten Farbe anzeigen
+        val colorPreviewImage = dialogView.findViewById<android.widget.ImageView>(R.id.ivPositionColorPreview)
+        when (selectedColor) {
+            CarColor.RED -> colorPreviewImage.setImageResource(R.drawable.car_red_0)
+            CarColor.BLUE -> colorPreviewImage.setImageResource(R.drawable.car_blue_0)
+            CarColor.GREEN -> colorPreviewImage.setImageResource(R.drawable.car_green_0)
+            CarColor.YELLOW -> colorPreviewImage.setImageResource(R.drawable.car_yellow_0)
+        }
+
         // Buttons für die Startpunktauswahl
         val normalButton = dialogView.findViewById<Button>(R.id.btnStartNormal)
         val uniButton = dialogView.findViewById<Button>(R.id.btnStartUni)
-
-        // Buttons sind immer aktiv, da die Verbindung bereits in der LobbyActivity hergestellt wurde
-        normalButton.isEnabled = true
-        uniButton.isEnabled = true
 
         // Normal-Start Button
         normalButton.setOnClickListener {
@@ -98,28 +155,23 @@ class BoardUIManager(
                 // Starte am normalen Startfeld (Index 1)
                 val startFieldIndex = 1
                 
-                // Setze Farbe des Spielers
-                val localPlayerId = playerManager.getLocalPlayer()?.id ?: ""
-                playerManager.setLocalPlayer(localPlayerId, selectedColor)
-                println("🎨 Farbe $selectedColor für Spieler $localPlayerId gesetzt")
+                // Zeige Zusammenfassung der Auswahl
+                Toast.makeText(context, "Du spielst mit Farbe $selectedColor und startest normal", Toast.LENGTH_SHORT).show()
                 
-                // Sende Farbe an Backend
-                stompClient.sendColorSelection(playerName, selectedColor.name)
-                
-                // Benachrichtige über Startfeld-Auswahl
-                uiCallbacks.onStartFieldSelected(startFieldIndex)
-
-                // Zeige eine Benachrichtigung über die ausgewählte Farbe
-                Toast.makeText(context, "Du spielst mit der Farbe: $selectedColor", Toast.LENGTH_SHORT).show()
-
-                // Schließe den Dialog
+                // Schließe diesen Dialog und öffne den Spielerreihenfolge-Dialog
                 dialog.dismiss()
-                println("🎮 Dialog geschlossen")
+                println("🎮 Startpositon-Dialog geschlossen")
+                
+                // Dritter Dialog für die Spielerreihenfolge anzeigen
+                showPlayerOrderDialog(playerName, stompClient, selectedColor, startFieldIndex)
+                
             } catch (e: Exception) {
                 println("❌❌❌ Fehler beim Normal-Start: ${e.message}")
                 e.printStackTrace()
                 // Dialog trotzdem schließen, damit der Benutzer nicht feststeckt
                 dialog.dismiss()
+                // Trotz Fehler die Startfeld-Auswahl übernehmen
+                uiCallbacks.onStartFieldSelected(1)
             }
         }
 
@@ -130,33 +182,176 @@ class BoardUIManager(
                 // Starte am Uni-Startfeld (Index 10)
                 val startFieldIndex = 10
                 
-                // Setze Farbe des Spielers
-                val localPlayerId = playerManager.getLocalPlayer()?.id ?: ""
-                playerManager.setLocalPlayer(localPlayerId, selectedColor)
-                println("🎨 Farbe $selectedColor für Spieler $localPlayerId gesetzt")
+                // Zeige Zusammenfassung der Auswahl
+                Toast.makeText(context, "Du spielst mit Farbe $selectedColor und startest an der Uni", Toast.LENGTH_SHORT).show()
                 
-                // Sende Farbe an Backend
-                stompClient.sendColorSelection(playerName, selectedColor.name)
-                
-                // Benachrichtige über Startfeld-Auswahl
-                uiCallbacks.onStartFieldSelected(startFieldIndex)
-
-                // Zeige eine Benachrichtigung über die ausgewählte Farbe
-                Toast.makeText(context, "Du spielst mit der Farbe: $selectedColor", Toast.LENGTH_SHORT).show()
-
-                // Schließe den Dialog
+                // Schließe diesen Dialog und öffne den Spielerreihenfolge-Dialog
                 dialog.dismiss()
-                println("🎓 Dialog geschlossen")
+                println("� Startposition-Dialog geschlossen")
+                
+                // Dritter Dialog für die Spielerreihenfolge anzeigen
+                showPlayerOrderDialog(playerName, stompClient, selectedColor, startFieldIndex)
+                
             } catch (e: Exception) {
                 println("❌❌❌ Fehler beim Uni-Start: ${e.message}")
                 e.printStackTrace()
                 // Dialog trotzdem schließen, damit der Benutzer nicht feststeckt
                 dialog.dismiss()
+                // Trotz Fehler die Startfeld-Auswahl übernehmen
+                uiCallbacks.onStartFieldSelected(10)
             }
         }
 
         // Dialog anzeigen
         dialog.show()
+    }
+    
+    /**
+     * Dritter Dialog: Auswahl der Spielerreihenfolge
+     */
+    private fun showPlayerOrderDialog(playerName: String, stompClient: StompConnectionManager, selectedColor: CarColor, startFieldIndex: Int) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_player_order_selection, null)
+        val dialog = AlertDialog.Builder(context)
+            .setView(dialogView)
+            .setCancelable(false)
+            .create()
+            
+        // Vorschau der gewählten Farbe anzeigen
+        val colorPreviewImage = dialogView.findViewById<android.widget.ImageView>(R.id.ivOrderColorPreview)
+        when (selectedColor) {
+            CarColor.RED -> colorPreviewImage.setImageResource(R.drawable.car_red_0)
+            CarColor.BLUE -> colorPreviewImage.setImageResource(R.drawable.car_blue_0)
+            CarColor.GREEN -> colorPreviewImage.setImageResource(R.drawable.car_green_0)
+            CarColor.YELLOW -> colorPreviewImage.setImageResource(R.drawable.car_yellow_0)
+        }
+        
+        // Statustext für bereits gewählte Positionen
+        val selectedPositionsText = dialogView.findViewById<TextView>(R.id.tvSelectedPositions)
+        
+        // Positionsbuttons
+        val btnPosition1 = dialogView.findViewById<Button>(R.id.btnPosition1)
+        val btnPosition2 = dialogView.findViewById<Button>(R.id.btnPosition2)
+        val btnPosition3 = dialogView.findViewById<Button>(R.id.btnPosition3)
+        val btnPosition4 = dialogView.findViewById<Button>(R.id.btnPosition4)
+        
+        // Map für gewählte Positionen
+        val chosenPositions = mutableMapOf<String, Int>()
+        
+        // Abonniere Spielerreihenfolge-Updates
+        stompClient.onPlayerOrdersReceived = { updatedOrders ->
+            Handler(Looper.getMainLooper()).post {
+                // Update der gewählten Positionen
+                chosenPositions.clear()
+                chosenPositions.putAll(updatedOrders)
+                
+                // Update der UI
+                updatePositionButtonStates(
+                    chosenPositions,
+                    btnPosition1,
+                    btnPosition2,
+                    btnPosition3,
+                    btnPosition4,
+                    selectedPositionsText
+                )
+            }
+        }
+        
+        // Initial abonnieren
+        stompClient.subscribeToPlayerOrders()
+        
+        // Button-Listener einrichten
+        btnPosition1.setOnClickListener {
+            handlePositionSelection(playerName, stompClient, selectedColor, startFieldIndex, 1, dialog, chosenPositions)
+        }
+        
+        btnPosition2.setOnClickListener {
+            handlePositionSelection(playerName, stompClient, selectedColor, startFieldIndex, 2, dialog, chosenPositions)
+        }
+        
+        btnPosition3.setOnClickListener {
+            handlePositionSelection(playerName, stompClient, selectedColor, startFieldIndex, 3, dialog, chosenPositions)
+        }
+        
+        btnPosition4.setOnClickListener {
+            handlePositionSelection(playerName, stompClient, selectedColor, startFieldIndex, 4, dialog, chosenPositions)
+        }
+        
+        // Dialog anzeigen
+        dialog.show()
+    }
+    
+    /**
+     * Aktualisiert den Zustand der Positions-Buttons basierend auf bereits gewählten Positionen
+     */
+    private fun updatePositionButtonStates(
+        chosenPositions: Map<String, Int>,
+        btnPosition1: Button,
+        btnPosition2: Button,
+        btnPosition3: Button,
+        btnPosition4: Button,
+        statusText: TextView
+    ) {
+        // Deaktiviere bereits gewählte Positionen
+        btnPosition1.isEnabled = !chosenPositions.containsValue(1)
+        btnPosition2.isEnabled = !chosenPositions.containsValue(2)
+        btnPosition3.isEnabled = !chosenPositions.containsValue(3)
+        btnPosition4.isEnabled = !chosenPositions.containsValue(4)
+        
+        // Button-Farben aktualisieren
+        btnPosition1.alpha = if (btnPosition1.isEnabled) 1.0f else 0.5f
+        btnPosition2.alpha = if (btnPosition2.isEnabled) 1.0f else 0.5f
+        btnPosition3.alpha = if (btnPosition3.isEnabled) 1.0f else 0.5f
+        btnPosition4.alpha = if (btnPosition4.isEnabled) 1.0f else 0.5f
+        
+        // Status-Text aktualisieren
+        if (chosenPositions.isEmpty()) {
+            statusText.text = "Bereits gewählte Positionen: -"
+        } else {
+            val positionsText = chosenPositions.entries.joinToString(", ") { 
+                "${it.key}: Position ${it.value}" 
+            }
+            statusText.text = "Bereits gewählte Positionen:\n$positionsText"
+        }
+    }
+    
+    /**
+     * Behandelt die Auswahl einer Spielerposition
+     */
+    private fun handlePositionSelection(
+        playerName: String,
+        stompClient: StompConnectionManager,
+        selectedColor: CarColor,
+        startFieldIndex: Int,
+        position: Int,
+        dialog: AlertDialog,
+        chosenPositions: Map<String, Int>
+    ) {
+        try {
+            println("🎲 Spielerposition $position ausgewählt")
+            
+            // Sende gewählte Position an Server
+            stompClient.sendPlayerOrder(playerName, position)
+            
+            // Bestätigungsnachricht zeigen
+            Toast.makeText(context, "Du spielst auf Position $position", Toast.LENGTH_SHORT).show()
+            
+            // Benachrichtige über Startfeld-Auswahl (jetzt erst hier, am Ende des gesamten Auswahlprozesses)
+            uiCallbacks.onStartFieldSelected(startFieldIndex)
+            
+            // Dialog schließen
+            dialog.dismiss()
+            println("� Spielerreihenfolge-Dialog geschlossen")
+            
+        } catch (e: Exception) {
+            println("❌❌❌ Fehler bei der Positionsauswahl: ${e.message}")
+            e.printStackTrace()
+            
+            // Dialog trotzdem schließen, damit der Benutzer nicht feststeckt
+            dialog.dismiss()
+            
+            // Benachrichtige über Startfeld-Auswahl trotz Fehler
+            uiCallbacks.onStartFieldSelected(startFieldIndex)
+        }
     }
 
     /**

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Wähle deine Spielposition"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+        
+    <TextView
+        android:id="@+id/tvOrderStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Wähle deine Position in der Spielreihenfolge"
+        android:textSize="14sp"
+        android:textColor="#3F51B5"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Farbvorschau für Spieler -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Deine Farbe: "
+            android:textSize="16sp"
+            android:layout_marginEnd="8dp"/>
+            
+        <ImageView
+            android:id="@+id/ivOrderColorPreview"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/car_blue_0"
+            android:contentDescription="Gewählte Spielerfarbe" />
+    </LinearLayout>
+        
+    <!-- Spielerreihenfolge-Auswahl -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Wähle deine Position:"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="12dp" />
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:columnCount="2"
+        android:rowCount="2"
+        android:useDefaultMargins="true"
+        android:layout_marginBottom="16dp">
+
+        <Button
+            android:id="@+id/btnPosition1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:text="Position 1"
+            android:layout_margin="4dp"
+            android:padding="16dp" />
+
+        <Button
+            android:id="@+id/btnPosition2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:text="Position 2"
+            android:layout_margin="4dp"
+            android:padding="16dp" />
+
+        <Button
+            android:id="@+id/btnPosition3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:text="Position 3"
+            android:layout_margin="4dp"
+            android:padding="16dp" />
+
+        <Button
+            android:id="@+id/btnPosition4"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:text="Position 4"
+            android:layout_margin="4dp"
+            android:padding="16dp" />
+    </GridLayout>
+
+    <TextView
+        android:id="@+id/tvSelectedPositions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Bereits gewählte Positionen: -"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+</LinearLayout>
