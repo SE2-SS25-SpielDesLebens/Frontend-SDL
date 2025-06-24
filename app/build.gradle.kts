@@ -1,5 +1,5 @@
-import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.kotlin.dsl.androidTestImplementation
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
@@ -10,21 +10,16 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
 }
 
-
-
 jacoco {
     toolVersion = "0.8.8"
 }
 
 android {
-
     namespace = "at.aau.serg.sdlapp"
     compileSdk = 35
 
-
     sourceSets.getByName("main").apply {
         java.srcDirs("src/main/java", "src/main/kotlin")
-        // Don't try to set `kotlin.srcDirs` here, it's not valid in the Kotlin Android plugin
     }
 
     packaging {
@@ -38,7 +33,6 @@ android {
             )
         }
     }
-
 
     defaultConfig {
         applicationId = "at.aau.serg.sdlapp"
@@ -84,10 +78,10 @@ android {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
             all {
-                it.useJUnitPlatform()
                 it.systemProperty("robolectric.logging", "stdout")
                 it.systemProperty("robolectric.graphicsMode", "NATIVE")
                 it.finalizedBy(tasks.named("jacocoTestReport"))
+                it.systemProperty("robolectric.maxSdk", "35")
             }
         }
     }
@@ -104,12 +98,8 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         xml.outputLocation.set(layout.buildDirectory.file("reports/jacoco/jacocoTestReport/jacocoTestReport.xml"))
     }
 
-    val fileFilter = listOf(
-        "**/R.class", "**/R$*.class", "**/BuildConfig.*", "**/Manifest*.*",
-        "**/*Test*.*", "android/**/*.*",
-        "**/di/**/*.*", "**/*_Factory.*", "**/*_MembersInjector.*",
-        "**/*_Provide*Factory.*", "**/*_ViewBinding.*"
-    )
+    val fileFilter = emptyList<String>()
+
 
     val debugTree = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
         exclude(fileFilter)
@@ -140,12 +130,12 @@ sonar {
         property("sonar.host.url", "https://sonarcloud.io")
         property("sonar.java.coveragePlugin", "jacoco")
         property("sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get()}/reports/jacoco/jacocoTestReport/jacocoTestReport.xml")
-        property("sonar.exclusions", "**/*Activity.kt,**/MyStomp.kt,**/Color.kt,**/Theme.kt,**/Type.kt,**/ActionCard.kt,**/PlayerModell.kt,**/PlayerRepository.kt,**/PlayerStatsOverlay.kt,**/GameScreen.kt,**/BoardData.kt,**/Field.kt,**/FieldTyp.kt,**/Board.kt,**/JobMessage.kt,**/JobRequestMessage.kt,**/PlayerViewModel.kt,**/FieldUI.kt, **/PlayerStatsOverlayScreen.kt,**/AllPlayerStatsScreen.kt")
+        property("sonar.exclusions", "**/*Activity*.kt,**/*Color*.kt,**/*Theme*.kt,**/*Typ*.kt,**/*Screen*.kt,**/ActionCard.kt, **/*ViewModel*.kt,**/PlayerModell.kt,**/BoardData.kt,**/FieldTyp.kt,**/FieldUI.kt")
     }
 }
 
 dependencies {
-    // App
+    // --- App Dependencies ---
     implementation(libs.krossbow.websocket.okhttp)
     implementation(libs.krossbow.stomp.core)
     implementation(libs.krossbow.websocket.builtin)
@@ -158,67 +148,69 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.constraintlayout)
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
-    implementation("com.google.code.gson:gson:2.10.1")
-    implementation("com.google.accompanist:accompanist-pager:0.34.0")
-    implementation("com.google.accompanist:accompanist-pager-indicators:0.34.0")
-    implementation("androidx.compose.material3:material3:1.2.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
-    implementation ("com.otaliastudios:zoomlayout:1.9.0")
-    implementation ("com.google.android.material:material:1.11.0")
-    implementation("androidx.core:core-splashscreen:1.0.1")
-    implementation("androidx.compose.ui:ui:1.7.0")
-    implementation("androidx.compose.ui:ui-viewbinding:1.7.0")
-    implementation("org.hildan.krossbow:krossbow-stomp-core:4.6.0")
-    implementation("org.hildan.krossbow:krossbow-websocket-okhttp:4.6.0")
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.gson)
+    implementation(libs.accompanist.pager)
+    implementation(libs.google.accompanist.pager.indicators)
+    implementation(libs.material3)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation (libs.zoomlayout)
+    implementation (libs.material)
+    implementation(libs.androidx.core.splashscreen)
+    implementation(libs.ui)
+    implementation(libs.androidx.ui.viewbinding)
+    implementation(libs.krossbow.stomp.core)
+    implementation(libs.krossbow.websocket.okhttp)
+    implementation(libs.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.volley)
 
 
 
 
 
-
-
-    // Unit-Tests
+    // --- Unit-Test Dependencies ---
     testImplementation(libs.junit)
-    testImplementation(libs.junit.jupiter.api)
-    testRuntimeOnly(libs.junit.jupiter.engine)
-    testImplementation("org.mockito:mockito-core:5.7.0")
-    testImplementation("org.robolectric:robolectric:4.11.1")
-    testImplementation("androidx.test:core:1.5.0")
-    testImplementation("androidx.test:core-ktx:1.5.0")
-    testImplementation("androidx.test.ext:junit:1.1.5")
-    testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.core.ktx)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(libs.androidx.arch.core.testing)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.arch.core.testing)
 
-
-    //UI-Test
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.7.8")
-    androidTestImplementation("androidx.compose.ui:ui-tooling:1.7.8")
-    androidTestImplementation("androidx.compose.ui:ui-tooling-preview:1.7.8")
-    androidTestImplementation("androidx.compose.ui:ui-test-manifest:1.7.8")
-    androidTestImplementation("io.mockk:mockk-android:1.13.9")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation("androidx.arch.core:core-testing:2.2.0")
+    // --- Instrumented/UI-Test Dependencies ---
+    androidTestImplementation(libs.ui.test.junit4)
+    androidTestImplementation(libs.ui.tooling)
+    androidTestImplementation(libs.ui.tooling.preview)
+    androidTestImplementation(libs.ui.test.manifest)
+    androidTestImplementation(libs.mockk.android)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.arch.core.testing)
 
 
     // Instrumentation Tests (Espresso + Intents)
-    androidTestImplementation("androidx.test:runner:1.5.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation("androidx.test.espresso:espresso-intents:3.5.1")//
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.espresso.intents)//
 
     // Compose Test
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.8.0")
-    debugImplementation("androidx.compose.ui:ui-test-manifest:1.8.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.0")
+    androidTestImplementation(libs.ui.test.junit4)
+    debugImplementation(libs.ui.test.manifest)
+    implementation(libs.kotlinx.serialization.json)
     testImplementation(libs.junit)
     testImplementation(libs.junit.jupiter.api)
-    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.0")
-    testImplementation("org.mockito:mockito-core:4.2.0")
+    testImplementation(libs.kotlinx.serialization.json)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    kotlinOptions {
-        jvmTarget = "11"
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_11)
     }
 }

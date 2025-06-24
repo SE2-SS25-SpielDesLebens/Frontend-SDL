@@ -45,82 +45,82 @@ class BoardTest {
     @Test
     fun testAddPlayer() {
         // When
-        board.addPlayer(1, 0)
+        board.addPlayer("player1", 0)
         
         // Then
-        val playerField = board.getPlayerField(1)
+        val playerField = board.getPlayerField("player1")
         assertEquals(0, playerField.index)
     }
     
     @Test
     fun testMovePlayer() {
         // Given
-        board.addPlayer(1, 0)
+        board.addPlayer("player1", 0)
         
         // When
-        board.movePlayer(1, 1)
+        board.movePlayer("player1", 1)
         
         // Then
-        val playerField = board.getPlayerField(1)
+        val playerField = board.getPlayerField("player1")
         assertEquals(1, playerField.index)
     }
     
     @Test
     fun testMovePlayerStopsAtBranch() {
         // Given
-        board.addPlayer(1, 0)
+        board.addPlayer("player1", 0)
         
         // When - trying to move 2 steps, but should stop at field 1 because it has a branch
-        board.movePlayer(1, 2)
+        board.movePlayer("player1", 2)
         
         // Then - player should be at field 1, not field 2
-        val playerField = board.getPlayerField(1)
+        val playerField = board.getPlayerField("player1")
         assertEquals(1, playerField.index)
     }
     
     @Test
     fun testMovePlayerStopsAtDeadEnd() {
         // Given
-        board.addPlayer(1, 2) // Start at field 2, which connects to field 4 (dead end)
+        board.addPlayer("player1", 2) // Start at field 2, which connects to field 4 (dead end)
         
         // When - try to move 2 steps
-        board.movePlayer(1, 2)
+        board.movePlayer("player1", 2)
         
         // Then - player should have stopped at field 4 (dead end)
-        val playerField = board.getPlayerField(1)
+        val playerField = board.getPlayerField("player1")
         assertEquals(4, playerField.index)
     }
     
     @Test
     fun testManualMoveTo() {
         // Given
-        board.addPlayer(1, 1) // Field 1 has next fields 2 and 3
+        board.addPlayer("player1", 1) // Field 1 has next fields 2 and 3
         
         // When
-        board.manualMoveTo(1, 3) // Manually choose path to field 3
+        board.manualMoveTo("player1", 3) // Manually choose path to field 3
         
         // Then
-        val playerField = board.getPlayerField(1)
+        val playerField = board.getPlayerField("player1")
         assertEquals(3, playerField.index)
     }
     
     @Test
     fun testManualMoveToInvalidField() {
         // Given
-        board.addPlayer(1, 0) // Field 0 only has next field 1
+        board.addPlayer("player1", 0) // Field 0 only has next field 1
         
         // When - try to move to field 2 which is not connected to field 0
-        board.manualMoveTo(1, 2)
+        board.manualMoveTo("player1", 2)
         
         // Then - player should remain at field 0
-        val playerField = board.getPlayerField(1)
+        val playerField = board.getPlayerField("player1")
         assertEquals(0, playerField.index)
     }
     
     @Test
     fun testGetPlayerFieldForNonExistentPlayer() {
         // When - get field for a player that doesn't exist
-        val field = board.getPlayerField(99)
+        val field = board.getPlayerField("notexistingplayer")
         
         // Then - should return field 0 (default)
         assertEquals(0, field.index)
@@ -129,14 +129,14 @@ class BoardTest {
     @Test
     fun testMultiplePlayers() {
         // Given
-        board.addPlayer(1, 0)
-        board.addPlayer(2, 1)
+        board.addPlayer("player1", 0)
+        board.addPlayer("player2", 1)
         
         // When
-        board.movePlayer(1, 1)
+        board.movePlayer("player1", 1)
         
         // Then - player 1 should have moved, player 2 should be unchanged
-        assertEquals(1, board.getPlayerField(1).index)
-        assertEquals(1, board.getPlayerField(2).index)
+        assertEquals(1, board.getPlayerField("player1").index)
+        assertEquals(1, board.getPlayerField("player2").index)
     }
 }

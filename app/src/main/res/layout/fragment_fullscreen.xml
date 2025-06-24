@@ -8,7 +8,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/background_mainscreen"
     android:padding="16dp"
-    tools:context=".ui.StartActivity">
+    tools:context=".ui.activity.StartActivity">
 
     <!-- Verbinden -->
 

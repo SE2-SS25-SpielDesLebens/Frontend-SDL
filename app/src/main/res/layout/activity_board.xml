@@ -4,7 +4,8 @@
     xmlns:zoom="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/black">
+    android:background="@color/black"
+    tools:context=".ui.BoardActivity">
 
     <!-- Zoombares Spielfeld -->
     <com.otaliastudios.zoom.ZoomLayout
@@ -17,21 +18,33 @@
         zoom:maxZoom="5.0"
         tools:ignore="MissingClass">
 
-        <!-- Brett + Figur im gemeinsamen Container -->
+        <!-- Brett + Figuren-Container -->
         <FrameLayout
             android:id="@+id/boardContainer"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@android:color/transparent">            <ImageView
+            android:background="@android:color/transparent">
+
+            <!-- Spielbrett -->
+            <ImageView
                 android:id="@+id/boardImag"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="fitXY"
                 android:src="@drawable/board10" />
-            
-            <!-- Spielfiguren werden dynamisch hinzugefügt -->
+
+            <!-- Compose Overlay für Spielerstatistiken -->
+            <androidx.compose.ui.platform.ComposeView
+                android:id="@+id/playerStatsOverlayCompose"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="80dp" />
+
         </FrameLayout>
-    </com.otaliastudios.zoom.ZoomLayout>    <!-- 🎲 Würfel-Button oben rechts -->
+    </com.otaliastudios.zoom.ZoomLayout>
+
+    <!-- 🎲 Würfel-Button -->
     <ImageButton
         android:id="@+id/diceButton"
         android:layout_width="64dp"
@@ -42,7 +55,8 @@
         android:src="@drawable/dice"
         android:contentDescription="Würfeln"
         android:scaleType="centerInside" />
-          <!-- 👥 Spielerliste-Button oben links -->
+
+    <!-- 👥 Spielerliste-Button -->
     <ImageButton
         android:id="@+id/playersButton"
         android:layout_width="48dp"
@@ -53,8 +67,20 @@
         android:src="@drawable/players_icon"
         android:contentDescription="Spielerliste"
         android:scaleType="centerInside" />
-        
-    <!-- Statusanzeige für Spieler-Anzahl -->
+
+    <!-- 📊 Stats-Button (unten rechts) -->
+    <ImageButton
+        android:id="@+id/statsButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:background="@drawable/rounded_white_button"
+        android:src="@drawable/players_icon"
+        android:contentDescription="Spielerstatistik anzeigen"
+        android:scaleType="centerInside" />
+
+    <!-- Statusanzeige Spieleranzahl -->
     <TextView
         android:id="@+id/statusText"
         android:layout_width="wrap_content"
@@ -66,4 +92,7 @@
         android:textColor="#FFFFFF"
         android:textSize="14sp"
         android:text="1 Spieler online" />
+
+
+
 </FrameLayout>

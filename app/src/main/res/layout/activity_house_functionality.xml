@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/houseFunctionalityRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="24dp"
+    android:background="@drawable/background_settings">
+
+    <Button
+        android:id="@+id/btnBuyHouse"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Haus kaufen"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="100dp" />
+
+    <Button
+        android:id="@+id/btnSellHouse"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Haus verkaufen"
+        app:layout_constraintTop_toBottomOf="@id/btnBuyHouse"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="24dp" />
+
+    <Button
+        android:id="@+id/btnDoNothing"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Nichts machen"
+        app:layout_constraintTop_toBottomOf="@id/btnSellHouse"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="24dp" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

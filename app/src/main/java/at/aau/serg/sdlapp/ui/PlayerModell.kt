@@ -10,7 +10,7 @@ data class PlayerModell(
     var salary: Int,
     var children: Int,
     var education: Boolean,
-    var relationship: Boolean,
+    var relationship: Boolean = false,
     var jobId: Int? = null,
     var houseId: Map<Int, Int> = emptyMap(),
     var carColor: String? = null,
