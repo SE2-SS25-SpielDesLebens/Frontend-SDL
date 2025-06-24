@@ -66,4 +66,71 @@ class PlayerStatsOverlayTest {
         composeTestRule.onNodeWithText("📘").assertExists()
         composeTestRule.onNodeWithText("✗").assertExists()
     }
+    @Test
+    fun testOverlayRelationshipDisplaysCorrectly() {
+        val player = PlayerModell(
+            id = "Spieler#3",
+            money = 12000,
+            investments = 5000,
+            salary = 6000,
+            children = 1,
+            education = true,
+            relationship = true
+        )
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                PlayerStatsOverlay(player = player)
+            }
+        }
+
+        composeTestRule.onNodeWithText("💍").assertExists()
+        composeTestRule.onNodeWithText("✓").assertExists()
+    }
+
+    @Test
+    fun testOverlayRelationshipFalseDisplaysCross() {
+        val player = PlayerModell(
+            id = "Spieler#4",
+            money = 0,
+            investments = 0,
+            salary = 0,
+            children = 0,
+            education = false,
+            relationship = false
+        )
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                PlayerStatsOverlay(player = player)
+            }
+        }
+
+        composeTestRule.onNodeWithText("💍").assertExists()
+        composeTestRule.onNodeWithText("✗").assertExists()
+    }
+
+    @Test
+    fun testOverlayHandlesExtremeValues() {
+        val player = PlayerModell(
+            id = "Max",
+            money = 999999,
+            investments = 99999,
+            salary = 123456,
+            children = 5,
+            education = true,
+            relationship = true
+        )
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                PlayerStatsOverlay(player = player)
+            }
+        }
+
+        composeTestRule.onNodeWithText("Max").assertExists()
+        composeTestRule.onNodeWithText("999k").assertExists() // falls gekürzt dargestellt
+        composeTestRule.onNodeWithText("5").assertExists()
+    }
+
 }

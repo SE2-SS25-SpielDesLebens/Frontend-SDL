@@ -64,4 +64,25 @@ class MoveMessageTest {
 
         assertNotEquals(msg1, msg2)
     }
+
+    @Test
+    fun `playerId is derived from playerName`() {
+        val message = MoveMessage("Carla", 10, "AKTION")
+        assertEquals("Carla", message.playerId)
+    }
+
+    @Test
+    fun `fieldType is korrekt für alle FieldType-Werte`() {
+        FieldType.entries.forEach { type ->
+            val message = MoveMessage("X", 0, type.name)
+            assertEquals(type, message.fieldType)
+        }
+    }
+
+    @Test
+    fun `empty typeString wird als AKTION erkannt`() {
+        val message = MoveMessage("X", 0, "")
+        assertEquals(FieldType.AKTION, message.fieldType)
+    }
+
 }
