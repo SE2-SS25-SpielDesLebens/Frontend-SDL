@@ -3,6 +3,7 @@ package at.aau.serg.sdlapp.network
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import at.aau.serg.sdlapp.model.game.ActionCard
 import at.aau.serg.sdlapp.network.message.MoveMessage
 import at.aau.serg.sdlapp.network.message.OutputMessage
 import at.aau.serg.sdlapp.network.message.PlayerListMessage
@@ -794,6 +795,40 @@ class StompConnectionManager(
                 }
             }
         } ?: sendToMainThread(NO_CONNECTION_SUBSCRIPTION_MESSAGE)
+    }
+
+    var onActionCardReceived: ((ActionCard) -> Unit)? = null
+
+    fun subscribeToActionCard(playerId: String, lobbyId: String) {
+        val topic = "/topic/card/$lobbyId/$playerId"
+        sessionOrNull?.let { session ->
+            scope.launch {
+                try {
+                    session.subscribeText(topic).collect { msg ->
+                        val card = gson.fromJson(msg, ActionCard::class.java)
+                        withContext(mainDispatcher) {
+                            onActionCardReceived?.invoke(card)
+                        }
+                    }
+                } catch (e: Exception) {
+                    sendToMainThread("❌ Fehler bei Subscription auf ActionCard: ${e.message}")
+                }
+            }
+        } ?: sendToMainThread(NO_CONNECTION_SUBSCRIPTION_MESSAGE)
+    }
+
+    fun drawActionCard(playerId: String, lobbyId: String) {
+        val destination = "/app/drawCard/$lobbyId/$playerId"
+        scope.launch {
+            sessionOrNull?.sendText(destination, "") ?: sendToMainThread(NO_CONNECTION_MESSAGE)
+        }
+    }
+
+    fun playActionCard(playerId: String, lobbyId: String, decision: String) {
+        val destination = "/app/playCard/$lobbyId/$playerId/$decision"
+        scope.launch {
+            sessionOrNull?.sendText(destination, "") ?: sendToMainThread(NO_CONNECTION_MESSAGE)
+        }
     }
 }
 

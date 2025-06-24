@@ -11,51 +11,85 @@ import androidx.activity.ComponentActivity
 import at.aau.serg.sdlapp.R
 import at.aau.serg.sdlapp.model.game.ActionCard
 import at.aau.serg.sdlapp.network.StompConnectionManager
-import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
 
-
-class ActionCardActivity : ComponentActivity(){
+class ActionCardActivity : ComponentActivity() {
 
     private lateinit var stomp: StompConnectionManager
+    private lateinit var playerId: String
+    private lateinit var lobbyId: String
+    private lateinit var currentCard: ActionCard
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_action_card)
 
-        val playerName = intent.getStringExtra("playerName") ?: "Spieler"
+        //TODO: Get playerId and lobbyId from proper source
+        playerId = intent.getStringExtra("playerId") ?: "Spieler"
+        lobbyId = intent.getStringExtra("lobbyId") ?: "defaultLobby"
 
-        stomp = StompConnectionManager({message -> Log.d("ActionCard", message)})
-        stomp.sendMove(playerName, "zieht Action Card")
+        stomp = StompConnectionManager(
+            callback = { message: String -> Log.d("ActionCard", message) },
+            ioDispatcher = Dispatchers.IO,
+            mainDispatcher = Dispatchers.Main
+        )
+
+        stomp.connectAsync(playerId) { connected ->
+            if (connected) {
+                stomp.subscribeToActionCard(playerId, lobbyId)
+                stomp.drawActionCard(playerId, lobbyId)
+            }
+        }
+
+        stomp.onActionCardReceived = { card ->
+            currentCard = card
+            handleResponse(card)
+        }
     }
 
     @SuppressLint("DiscouragedApi")
-    private fun handleResponse(res: String) {
+    private fun handleResponse(card: ActionCard) {
         runOnUiThread {
-            val gson = Gson()
-            val card = gson.fromJson(res, ActionCard::class.java)
-
             findViewById<TextView>(R.id.headline).text = card.headline
-
             val resId = resources.getIdentifier(card.imageName, "drawable", applicationContext.packageName)
             if (resId != 0) findViewById<ImageView>(R.id.picture).setImageResource(resId)
-
             findViewById<TextView>(R.id.description).text = card.action
 
-            findViewById<Button?>(R.id.button).setOnClickListener {
-                //TODO: Execute button action
+            val button1 = findViewById<Button>(R.id.button)
+            val button2 = findViewById<Button>(R.id.button2)
+
+            button1.text = card.choices.getOrNull(0) ?: "OK"
+            button1.setOnClickListener {
+                buttonClicked(button1, card.choices[0])
             }
 
-            //Remove second button if action is inevitable
-            if(card.choices.size == 1) {
-                val button2 = findViewById<Button>(R.id.button2)
-                val parent = button2.parent as? ViewGroup
-                parent?.removeView(button2)
-
-            } else {
-                findViewById<Button?>(R.id.button2).setOnClickListener {
-                    //TODO: Execute button action
+            if (card.choices.size > 1) {
+                button2.text = card.choices[1]
+                button2.setOnClickListener {
+                    buttonClicked(button2, card.choices[1])
                 }
+            } else {
+                (button2.parent as? ViewGroup)?.removeView(button2)
+
+                // Move the first button (R.id.button) slightly downward
+                val button = findViewById<Button>(R.id.button)
+                val params = button.layoutParams as? ViewGroup.MarginLayoutParams
+                params?.topMargin = dpToPx(55)
+                button.layoutParams = params
             }
         }
     }
+
+    private fun buttonClicked(button: Button, choice: String) {
+        button.isEnabled = false
+        stomp.playActionCard(playerId, lobbyId, choice)
+        finish()
+        //TODO: go to next screen
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        val density = resources.displayMetrics.density
+        return (dp * density).toInt()
+    }
+
 }
