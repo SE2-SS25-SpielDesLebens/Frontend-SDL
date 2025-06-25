@@ -1,4 +1,4 @@
-package at.aau.serg.sdlapp.ui
+package at.aau.serg.sdlapp.model.player
 
 import kotlinx.serialization.Serializable
 
@@ -19,4 +19,3 @@ data class PlayerModell(
     var active: Boolean = false,
     var fieldId: Int = 0
 )
-

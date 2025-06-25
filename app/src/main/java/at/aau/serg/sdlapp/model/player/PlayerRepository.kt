@@ -1,4 +1,4 @@
-package at.aau.serg.sdlapp.ui
+package at.aau.serg.sdlapp.model.player
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

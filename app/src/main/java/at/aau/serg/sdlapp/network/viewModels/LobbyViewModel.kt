@@ -3,8 +3,8 @@ package at.aau.serg.sdlapp.network.viewModels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import at.aau.serg.sdlapp.ui.PlayerModell
-import at.aau.serg.sdlapp.ui.PlayerRepository
+import at.aau.serg.sdlapp.model.player.PlayerModell
+import at.aau.serg.sdlapp.model.player.PlayerRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
