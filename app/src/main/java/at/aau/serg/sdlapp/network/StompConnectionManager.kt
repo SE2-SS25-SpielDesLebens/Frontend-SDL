@@ -7,6 +7,7 @@ import at.aau.serg.sdlapp.model.game.ActionCard
 import at.aau.serg.sdlapp.network.message.MoveMessage
 import at.aau.serg.sdlapp.network.message.OutputMessage
 import at.aau.serg.sdlapp.network.message.PlayerListMessage
+import at.aau.serg.sdlapp.network.message.PlayerOrderMessage
 import at.aau.serg.sdlapp.network.message.PlayerPositionsMessage
 import at.aau.serg.sdlapp.network.message.StompMessage
 import at.aau.serg.sdlapp.network.message.house.HouseBuyElseSellMessage
@@ -780,9 +781,7 @@ class StompConnectionManager(
                 }
             }
         } ?: Log.e("StompConnectionManager", NO_CONNECTION_SUBSCRIPTION_MESSAGE)
-    }
-
-    fun sendColorSelection(player: String, color: String) {
+    }    fun sendColorSelection(player: String, color: String) {
         sessionOrNull?.let {
             val message = StompMessage(playerName = player, action = "color:$color")
             val json = gson.toJson(message)
@@ -796,39 +795,56 @@ class StompConnectionManager(
             }
         } ?: sendToMainThread(NO_CONNECTION_SUBSCRIPTION_MESSAGE)
     }
-
-    var onActionCardReceived: ((ActionCard) -> Unit)? = null
-
-    fun subscribeToActionCard(playerId: String, lobbyId: String) {
-        val topic = "/topic/card/$lobbyId/$playerId"
-        sessionOrNull?.let { session ->
+    
+    /**
+     * Callback für Änderungen bei der Spielerreihenfolge
+     * Wird aufgerufen, wenn ein Spieler eine Position auswählt
+     */
+    var onPlayerOrdersReceived: ((Map<String, Int>) -> Unit)? = null
+    
+    /**
+     * Sendet die gewählte Spielposition an den Server
+     * @param player Spielername/ID
+     * @param position Gewählte Position (1-4)
+     */
+    fun sendPlayerOrder(player: String, position: Int) {
+        sessionOrNull?.let {
+            val message = StompMessage(playerName = player, action = "order:$position")
+            val json = gson.toJson(message)
             scope.launch {
                 try {
-                    session.subscribeText(topic).collect { msg ->
-                        val card = gson.fromJson(msg, ActionCard::class.java)
-                        withContext(mainDispatcher) {
-                            onActionCardReceived?.invoke(card)
-                        }
-                    }
+                    session?.sendText("/app/player/order", json)
+                    sendToMainThread("🎮 Spielposition '$position' gesendet")
                 } catch (e: Exception) {
-                    sendToMainThread("❌ Fehler bei Subscription auf ActionCard: ${e.message}")
+                    sendToMainThread("❌ Fehler beim Senden der Spielposition: ${e.message}")
                 }
             }
         } ?: sendToMainThread(NO_CONNECTION_SUBSCRIPTION_MESSAGE)
     }
-
-    fun drawActionCard(playerId: String, lobbyId: String) {
-        val destination = "/app/drawCard/$lobbyId/$playerId"
-        scope.launch {
-            sessionOrNull?.sendText(destination, "") ?: sendToMainThread(NO_CONNECTION_MESSAGE)
-        }
-    }
-
-    fun playActionCard(playerId: String, lobbyId: String, decision: String) {
-        val destination = "/app/playCard/$lobbyId/$playerId/$decision"
-        scope.launch {
-            sessionOrNull?.sendText(destination, "") ?: sendToMainThread(NO_CONNECTION_MESSAGE)
-        }
+    
+    /**
+     * Abonniert Updates zu gewählten Spielerpositionen
+     */
+    fun subscribeToPlayerOrders() {
+        sessionOrNull?.let { session ->
+            scope.launch {
+                try {
+                    val subscription = session.subscribeText("/topic/player/orders")
+                    sendToMainThread("✅ Spielerpositionen-Subscription erfolgreich")
+                    
+                    subscription.collect { message ->
+                        try {
+                            val playerOrderMessage = gson.fromJson(message, PlayerOrderMessage::class.java)
+                            onPlayerOrdersReceived?.invoke(playerOrderMessage.playerOrders)
+                        } catch (e: Exception) {
+                            Log.e("StompConnectionManager", "Fehler beim Verarbeiten der Spielerpositionen: ${e.message}")
+                        }
+                    }
+                } catch (e: Exception) {
+                    sendToMainThread("❌ Fehler bei Spielerpositionen-Subscription: ${e.message}")
+                }
+            }
+        } ?: Log.e("StompConnectionManager", NO_CONNECTION_SUBSCRIPTION_MESSAGE)
     }
 }
 
