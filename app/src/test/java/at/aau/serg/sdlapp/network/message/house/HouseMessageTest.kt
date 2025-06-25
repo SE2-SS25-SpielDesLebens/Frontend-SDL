@@ -1,8 +1,8 @@
 package at.aau.serg.sdlapp.network.message.house
 
 import org.junit.Assert.*
-import org.junit.Test
-
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 class HouseMessageTest {
 
     @Test
@@ -19,15 +19,15 @@ class HouseMessageTest {
             sellPrice = true
         )
 
-        assertEquals(1, house.houseId)
-        assertEquals("Villa Sonnenschein", house.bezeichnung)
-        assertEquals(300000, house.kaufpreis)
-        assertEquals(250000, house.verkaufspreisRot)
-        assertEquals(280000, house.verkaufspreisSchwarz)
-        assertTrue(house.isTaken)
-        assertEquals("Alice", house.assignedToPlayerName)
-        assertEquals(42, house.gameId)
-        assertTrue(house.sellPrice)
+        Assertions.assertEquals(1, house.houseId)
+        Assertions.assertEquals("Villa Sonnenschein", house.bezeichnung)
+        Assertions.assertEquals(300000, house.kaufpreis)
+        Assertions.assertEquals(250000, house.verkaufspreisRot)
+        Assertions.assertEquals(280000, house.verkaufspreisSchwarz)
+        Assertions.assertTrue(house.isTaken)
+        Assertions.assertEquals("Alice", house.assignedToPlayerName)
+        Assertions.assertEquals(42, house.gameId)
+        Assertions.assertTrue(house.sellPrice)
     }
 
     @Test
@@ -35,10 +35,10 @@ class HouseMessageTest {
         val original = HouseMessage(2, "Hütte", 100000, 80000, 85000, false, null, 1, false)
         val copy = original.copy(assignedToPlayerName = "Bob", sellPrice = true)
 
-        assertEquals("Bob", copy.assignedToPlayerName)
-        assertTrue(copy.sellPrice)
-        assertEquals(original.houseId, copy.houseId)
-        assertNotEquals(original, copy)
+        Assertions.assertEquals("Bob", copy.assignedToPlayerName)
+        Assertions.assertTrue(copy.sellPrice)
+        Assertions.assertEquals(original.houseId, copy.houseId)
+        Assertions.assertNotEquals(original, copy)
     }
 
     @Test
@@ -46,13 +46,13 @@ class HouseMessageTest {
         val h1 = HouseMessage(3, "Bungalow", 150000, 120000, 130000, false, "PlayerX", 7, false)
         val h2 = HouseMessage(3, "Bungalow", 150000, 120000, 130000, false, "PlayerX", 7, false)
 
-        assertEquals(h1, h2)
-        assertEquals(h1.hashCode(), h2.hashCode())
+        Assertions.assertEquals(h1, h2)
+        Assertions.assertEquals(h1.hashCode(), h2.hashCode())
     }
 
     @Test
     fun `handle null player name`() {
         val house = HouseMessage(4, "Wohnung", 200000, 180000, 190000, false, null, 99, true)
-        assertNull(house.assignedToPlayerName)
+        Assertions.assertNull(house.assignedToPlayerName)
     }
 }

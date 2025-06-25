@@ -1,8 +1,8 @@
 package at.aau.serg.sdlapp.network.message
 
 import org.junit.Assert.*
-import org.junit.Test
-
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 class PlayerPositionsMessageTest {
 
     @Test
@@ -15,9 +15,9 @@ class PlayerPositionsMessageTest {
             timestamp = timestamp
         )
 
-        assertEquals(positions, message.playerPositions)
-        assertEquals(timestamp, message.timestamp)
-        assertEquals("playerPositions", message.type)
+        Assertions.assertEquals(positions, message.playerPositions)
+        Assertions.assertEquals(timestamp, message.timestamp)
+        Assertions.assertEquals("playerPositions", message.type)
     }
 
     @Test
@@ -28,8 +28,8 @@ class PlayerPositionsMessageTest {
         val msg1 = PlayerPositionsMessage(positions, timestamp)
         val msg2 = PlayerPositionsMessage(positions, timestamp)
 
-        assertEquals(msg1, msg2)
-        assertEquals(msg1.hashCode(), msg2.hashCode())
+        Assertions.assertEquals(msg1, msg2)
+        Assertions.assertEquals(msg1.hashCode(), msg2.hashCode())
     }
 
     @Test
@@ -37,12 +37,12 @@ class PlayerPositionsMessageTest {
         val msg1 = PlayerPositionsMessage(mapOf("A" to 5), "2024-06-20T10:00:00Z")
         val msg2 = PlayerPositionsMessage(mapOf("A" to 6), "2024-06-20T10:00:00Z")
 
-        assertNotEquals(msg1, msg2)
+        Assertions.assertNotEquals(msg1, msg2)
     }
 
     @Test
     fun `Default type is playerPositions`() {
         val msg = PlayerPositionsMessage(mapOf(), "timestamp")
-        assertEquals("playerPositions", msg.type)
+        Assertions.assertEquals("playerPositions", msg.type)
     }
 }

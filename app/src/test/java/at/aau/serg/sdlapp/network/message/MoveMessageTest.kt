@@ -2,8 +2,8 @@ package at.aau.serg.sdlapp.network.message
 
 import at.aau.serg.sdlapp.model.board.FieldType
 import org.junit.Assert.*
-import org.junit.Test
-
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 class MoveMessageTest {
 
     @Test
@@ -16,13 +16,13 @@ class MoveMessageTest {
             nextPossibleFields = listOf(8, 9)
         )
 
-        assertEquals("Alice", message.playerName)
-        assertEquals(7, message.fieldIndex)
-        assertEquals("ZAHLTAG", message.typeString)
-        assertEquals("2025-06-20T10:00:00Z", message.timestamp)
-        assertEquals(listOf(8, 9), message.nextPossibleFields)
-        assertEquals("Alice", message.playerId)
-        assertEquals(FieldType.ZAHLTAG, message.fieldType)
+        Assertions.assertEquals("Alice", message.playerName)
+        Assertions.assertEquals(7, message.fieldIndex)
+        Assertions.assertEquals("ZAHLTAG", message.typeString)
+        Assertions.assertEquals("2025-06-20T10:00:00Z", message.timestamp)
+        Assertions.assertEquals(listOf(8, 9), message.nextPossibleFields)
+        Assertions.assertEquals("Alice", message.playerId)
+        Assertions.assertEquals(FieldType.ZAHLTAG, message.fieldType)
     }
 
     @Test
@@ -33,7 +33,7 @@ class MoveMessageTest {
             typeString = "UNKNOWN_TYPE"
         )
 
-        assertEquals(FieldType.AKTION, message.fieldType)
+        Assertions.assertEquals(FieldType.AKTION, message.fieldType)
     }
 
     @Test
@@ -44,8 +44,8 @@ class MoveMessageTest {
             typeString = "FREUND"
         )
 
-        assertNull(message.timestamp)
-        assertTrue(message.nextPossibleFields.isEmpty())
+        Assertions.assertNull(message.timestamp)
+        Assertions.assertTrue(message.nextPossibleFields.isEmpty())
     }
 
     @Test
@@ -53,8 +53,8 @@ class MoveMessageTest {
         val msg1 = MoveMessage("A", 1, "AKTION", "ts", listOf(2))
         val msg2 = MoveMessage("A", 1, "AKTION", "ts", listOf(2))
 
-        assertEquals(msg1, msg2)
-        assertEquals(msg1.hashCode(), msg2.hashCode())
+        Assertions.assertEquals(msg1, msg2)
+        Assertions.assertEquals(msg1.hashCode(), msg2.hashCode())
     }
 
     @Test
@@ -62,7 +62,7 @@ class MoveMessageTest {
         val msg1 = MoveMessage("A", 1, "AKTION", "ts", listOf(2))
         val msg2 = MoveMessage("A", 1, "ZAHLTAG", "ts", listOf(2))
 
-        assertNotEquals(msg1, msg2)
+        Assertions.assertNotEquals(msg1, msg2)
     }
 
     @Test

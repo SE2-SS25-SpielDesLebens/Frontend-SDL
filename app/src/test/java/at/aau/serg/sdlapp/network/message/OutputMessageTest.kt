@@ -1,8 +1,8 @@
 package at.aau.serg.sdlapp.network.message
 
 import org.junit.Assert.*
-import org.junit.Test
-
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 class OutputMessageTest {
 
     @Test
@@ -13,9 +13,9 @@ class OutputMessageTest {
             timestamp = "2025-06-20T12:34:56Z"
         )
 
-        assertEquals("Alice", message.playerName)
-        assertEquals("Hello, world!", message.content)
-        assertEquals("2025-06-20T12:34:56Z", message.timestamp)
+        Assertions.assertEquals("Alice", message.playerName)
+        Assertions.assertEquals("Hello, world!", message.content)
+        Assertions.assertEquals("2025-06-20T12:34:56Z", message.timestamp)
     }
 
     @Test
@@ -23,8 +23,8 @@ class OutputMessageTest {
         val msg1 = OutputMessage("Bob", "Message", "2025-06-20T15:00:00Z")
         val msg2 = OutputMessage("Bob", "Message", "2025-06-20T15:00:00Z")
 
-        assertEquals(msg1, msg2)
-        assertEquals(msg1.hashCode(), msg2.hashCode())
+        Assertions.assertEquals(msg1, msg2)
+        Assertions.assertEquals(msg1.hashCode(), msg2.hashCode())
     }
 
     @Test
@@ -32,6 +32,6 @@ class OutputMessageTest {
         val msg1 = OutputMessage("Carol", "Hi", "2025-06-20T12:00:00Z")
         val msg2 = OutputMessage("Carol", "Bye", "2025-06-20T12:00:00Z")
 
-        assertNotEquals(msg1, msg2)
+        Assertions.assertNotEquals(msg1, msg2)
     }
 }

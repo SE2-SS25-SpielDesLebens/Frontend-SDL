@@ -98,29 +98,8 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         xml.outputLocation.set(layout.buildDirectory.file("reports/jacoco/jacocoTestReport/jacocoTestReport.xml"))
     }
 
-    val fileFilter = listOf(
-        "**/*Activity*.class",
-        "**/*Color*.class",
-        "**/*Theme*.class",
-        "**/*Typ*.class",
-        "**/*Screen*.class",
-        "**/ActionCard.class",
-        "**/*ViewModel*.class",
-        "**/PlayerModell.class",
-        "**/BoardData.class",
-        "**/FieldTyp.class",
-        "**/FieldUI.class",
-        "**/R.class",
-        "**/R$*.class",
-        "**/BuildConfig.*",
-        "**/Manifest*.*",
-        "**/*Test*.*",
-        "android/**/*.*",
-        "**/*_Factory.*",
-        "**/*_MembersInjector.*",
-        "**/*_Provide*Factory.*",
-        "**/*_ViewBinding.*"
-    )
+    val fileFilter = emptyList<String>()
+
 
     val debugTree = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
         exclude(fileFilter)
@@ -141,7 +120,6 @@ tasks.register<JacocoReport>("jacocoTestReport") {
 }
 
 tasks.withType<Test> {
-    useJUnitPlatform() // ✅ JUnit 5 aktivieren!
     finalizedBy(tasks.named("jacocoTestReport"))
 }
 

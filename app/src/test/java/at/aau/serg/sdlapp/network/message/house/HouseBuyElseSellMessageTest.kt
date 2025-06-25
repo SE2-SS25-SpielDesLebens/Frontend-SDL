@@ -1,7 +1,8 @@
 package at.aau.serg.sdlapp.network.message.house
 
 import org.junit.Assert.*
-import org.junit.Test
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 
 class HouseBuyElseSellMessageTest {
 
@@ -13,9 +14,9 @@ class HouseBuyElseSellMessageTest {
             buyElseSell = true
         )
 
-        assertEquals("player123", message.playerID)
-        assertEquals(42, message.gameId)
-        assertTrue(message.buyElseSell)
+        Assertions.assertEquals("player123", message.playerID)
+        Assertions.assertEquals(42, message.gameId)
+        Assertions.assertTrue(message.buyElseSell)
     }
 
     @Test
@@ -23,9 +24,9 @@ class HouseBuyElseSellMessageTest {
         val original = HouseBuyElseSellMessage("playerA", 1, false)
         val copy = original.copy(buyElseSell = true)
 
-        assertEquals("playerA", copy.playerID)
-        assertEquals(1, copy.gameId)
-        assertTrue(copy.buyElseSell)
-        assertNotEquals(original, copy)
+        Assertions.assertEquals("playerA", copy.playerID)
+        Assertions.assertEquals(1, copy.gameId)
+        Assertions.assertTrue(copy.buyElseSell)
+        Assertions.assertNotEquals(original, copy)
     }
 }

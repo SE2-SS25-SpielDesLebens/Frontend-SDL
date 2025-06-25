@@ -1,8 +1,8 @@
 package at.aau.serg.sdlapp.network.message
 
 import org.junit.Assert.*
-import org.junit.Test
-
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 class StompMessageTest {
 
     @Test
@@ -14,20 +14,20 @@ class StompMessageTest {
             gameId = "42"
         )
 
-        assertEquals("Alice", message.playerName)
-        assertEquals("JOIN", message.action)
-        assertEquals("Hello", message.messageText)
-        assertEquals("42", message.gameId)
+        Assertions.assertEquals("Alice", message.playerName)
+        Assertions.assertEquals("JOIN", message.action)
+        Assertions.assertEquals("Hello", message.messageText)
+        Assertions.assertEquals("42", message.gameId)
     }
 
     @Test
     fun `StompMessage uses default values when optional parameters are omitted`() {
         val message = StompMessage(playerName = "Bob")
 
-        assertEquals("Bob", message.playerName)
-        assertNull(message.action)
-        assertNull(message.messageText)
-        assertNull(message.gameId)
+        Assertions.assertEquals("Bob", message.playerName)
+        Assertions.assertNull(message.action)
+        Assertions.assertNull(message.messageText)
+        Assertions.assertNull(message.gameId)
     }
 
     @Test
@@ -35,8 +35,8 @@ class StompMessageTest {
         val msg1 = StompMessage("Charlie", "MOVE", "Let's go!", "99")
         val msg2 = StompMessage("Charlie", "MOVE", "Let's go!", "99")
 
-        assertEquals(msg1, msg2)
-        assertEquals(msg1.hashCode(), msg2.hashCode())
+        Assertions.assertEquals(msg1, msg2)
+        Assertions.assertEquals(msg1.hashCode(), msg2.hashCode())
     }
 
     @Test
@@ -44,6 +44,6 @@ class StompMessageTest {
         val msg1 = StompMessage("Charlie", "MOVE", "Go", "1")
         val msg2 = StompMessage("Charlie", "WAIT", "Stop", "1")
 
-        assertNotEquals(msg1, msg2)
+        Assertions.assertNotEquals(msg1, msg2)
     }
 }
