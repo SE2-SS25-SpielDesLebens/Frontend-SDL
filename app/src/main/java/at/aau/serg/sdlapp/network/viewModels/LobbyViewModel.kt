@@ -3,6 +3,8 @@ package at.aau.serg.sdlapp.network.viewModels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import at.aau.serg.sdlapp.model.player.PlayerModell
+import at.aau.serg.sdlapp.model.player.PlayerRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +38,27 @@ class LobbyViewModel(
 
         // Zusätzlich auf direkte Game-Status-Nachrichten lauschen
 
+        // 🆕 Spieler sofort am Server anlegen
+        viewModelScope.launch {
+            try {
+                Log.d("LobbyViewModel", "🟢 Registriere Spieler $currentPlayer am Server...")
+                val newPlayer = PlayerModell(
+                    id = currentPlayer,
+                    children = 0,
+                    education = false,
+                    investments = 0,
+                    money = 250_000,
+                    salary = 50_000
+                )
+
+                PlayerRepository.createPlayer(newPlayer)
+                Log.d("LobbyViewModel", "✅ Spieler $currentPlayer erfolgreich registriert")
+            } catch (e: Exception) {
+                Log.e("LobbyViewModel", "❌ Spieler konnte nicht erstellt werden: ${e.message}")
+            }
+        }
+
+        // 🛰️ Game-Status vom Server beobachten
         viewModelScope.launch {
             try {
                 Log.d(
@@ -51,7 +74,6 @@ class LobbyViewModel(
                 }
             } catch (e: Exception) {
                 Log.e("LobbyViewModel", "❌ Error subscribing to game status", e)
-
             }
         }
     }

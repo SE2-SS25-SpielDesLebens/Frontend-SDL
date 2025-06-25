@@ -11,15 +11,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import at.aau.serg.sdlapp.model.player.PlayerManager
-import at.aau.serg.sdlapp.ui.PlayerModell
-import at.aau.serg.sdlapp.ui.PlayerStatsOverlay
-
+import at.aau.serg.sdlapp.model.player.PlayerModell
+import at.aau.serg.sdlapp.ui.PlayerOverlay.PlayerStatsOverlay
+import kotlinx.coroutines.delay
 
 class PlayerStatsActivity : ComponentActivity() {
+
+    private lateinit var playerId: String
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val playerId = intent.getStringExtra("playerId") ?: "1"
+        playerId = intent.getStringExtra("playerId") ?: "1"
         Log.d("PlayerStatsActivity", "Erhaltener Spieler-ID: $playerId")
 
         setContent {
@@ -31,9 +34,21 @@ class PlayerStatsActivity : ComponentActivity() {
 
     @Composable
     fun StatsScreenWithCloseButton(playerId: String) {
-        // 👇 Hole Spieler-Daten vom PlayerManager (Singleton)
-        val player = remember {
-            PlayerManager.getPlayer(playerId)
+        var player by remember { mutableStateOf(PlayerManager.getPlayer(playerId)) }
+
+        // 🔄 1x zu Beginn vom Server laden
+        LaunchedEffect(playerId) {
+            PlayerManager.syncPlayerWithServer(playerId)
+            player = PlayerManager.getPlayer(playerId)
+        }
+
+        // 🔁 Wiederholt synchronisieren (alle 2 Sekunden)
+        LaunchedEffect(playerId) {
+            while (true) {
+                PlayerManager.syncPlayerWithServer(playerId)
+                player = PlayerManager.getPlayer(playerId)
+                delay(2000)
+            }
         }
 
         Column(
@@ -42,18 +57,16 @@ class PlayerStatsActivity : ComponentActivity() {
                 .padding(16.dp)
         ) {
             if (player != null) {
-                // 👇 Konvertiere zum UI-Modell, falls nötig
-                val playerModell = PlayerModell(
-                    id = player.id,
-                    money = player.money,
-                    children = player.children,
-                    education = player.hasEducation,
-                    investments = player.investments,
-                    salary = 5000,               // Beispielwert
-                    relationship = player.relationship
+                val playerModel = PlayerModell(
+                    id = player!!.id,
+                    money = player!!.money,
+                    children = player!!.children,
+                    education = player!!.hasEducation,
+                    investments = player!!.investments,
+                    salary = player!!.salary,
+                    relationship = player!!.relationship
                 )
-
-                PlayerStatsOverlay(player = playerModell)
+                PlayerStatsOverlay(player = playerModel)
             } else {
                 Text("⚠️ Spieler nicht gefunden", color = MaterialTheme.colorScheme.error)
             }
@@ -61,10 +74,7 @@ class PlayerStatsActivity : ComponentActivity() {
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = {
-                    Log.d("PlayerStatsActivity", "Zurück-Button geklickt")
-                    finish()
-                },
+                onClick = { finish() },
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
                 Text("🔙 Zurück zum Spiel")

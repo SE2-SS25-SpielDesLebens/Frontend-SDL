@@ -16,9 +16,11 @@ data class Player(
     var hasEducation: Boolean = false,
     var investments: Int = 0,
     var salary: Int = 0,                   // Standardwert
-    val relationship: Boolean = false,
-    var color: CarColor = CarColor.BLUE
-) {
+    var relationship: Boolean = false,
+    var color: CarColor = CarColor.BLUE,
+    var startedWithUniversity: Boolean = false,
+
+    ) {
 
     init{
         setCarColor()

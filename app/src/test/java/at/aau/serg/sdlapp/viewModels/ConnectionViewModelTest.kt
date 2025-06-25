@@ -1,4 +1,4 @@
-package at.aau.serg.sdlapp.network.viewModels
+package at.aau.serg.sdlapp.viewModels
 
 import at.aau.serg.sdlapp.network.StompConnectionManager
 import org.junit.Assert
@@ -6,6 +6,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import at.aau.serg.sdlapp.network.viewModels.ConnectionViewModel
 import io.mockk.*
 
 class ConnectionViewModelTest {

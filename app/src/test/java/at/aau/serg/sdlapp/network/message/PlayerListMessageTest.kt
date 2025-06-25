@@ -1,30 +1,30 @@
 package at.aau.serg.sdlapp.network.message
 
 import org.junit.Assert.*
-import org.junit.Test
-
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 class PlayerListMessageTest {
     @Test
     fun `constructor sets all values correctly`() {
         val msg = PlayerListMessage(type = "players", playerList = listOf("1","2","3"), timestamp = "2024-05-31T12:00:00Z")
-        assertEquals("players", msg.type)
-        assertEquals(listOf("1","2","3"), msg.playerList)
-        assertEquals("2024-05-31T12:00:00Z", msg.timestamp)
+        Assertions.assertEquals("players", msg.type)
+        Assertions.assertEquals(listOf("1","2","3"), msg.playerList)
+        Assertions.assertEquals("2024-05-31T12:00:00Z", msg.timestamp)
     }
 
     @Test
     fun `default values are correct`() {
         val msg = PlayerListMessage()
-        assertEquals("players", msg.type)
-        assertTrue(msg.playerList.isEmpty())
-        assertEquals("", msg.timestamp)
+        Assertions.assertEquals("players", msg.type)
+        Assertions.assertTrue(msg.playerList.isEmpty())
+        Assertions.assertEquals("", msg.timestamp)
     }
 
     @Test
     fun `copy creates identical but separate object`() {
         val original = PlayerListMessage("players", listOf("1","2"), "t")
         val copy = original.copy()
-        assertEquals(original, copy)
-        assertNotSame(original, copy)
+        Assertions.assertEquals(original, copy)
+        Assertions.assertNotSame(original, copy)
     }
 }

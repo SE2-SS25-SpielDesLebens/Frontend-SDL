@@ -87,7 +87,7 @@ class PlayerManagerTest {
         val all = PlayerManager.getAllPlayers()
         assertEquals(2, all.size)
     }
-    /*
+
 
     @Test
     fun testHaveAllPlayersFinished_SinglePlayer() {
@@ -109,7 +109,7 @@ class PlayerManagerTest {
         PlayerManager.addPlayer("31", "Kai", 1)
         assertFalse(PlayerManager.haveAllPlayersFinished())
     }
-    */
+
 
     @Test
     fun testIsLocalPlayer() {
@@ -130,13 +130,13 @@ class PlayerManagerTest {
         val summary = PlayerManager.getDebugSummary()
         assertTrue(summary.contains("*")) // local player markiert
     }
-    /*
+
     @Test
     fun testGameFinishedState() {
         assertFalse(PlayerManager.isGameFinished())
         PlayerManager.markGameFinished()
         assertTrue(PlayerManager.isGameFinished())
-    }*/
+    }
 
     @Test
     fun testUpdatePlayerColor() {

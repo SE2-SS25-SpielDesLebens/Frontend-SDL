@@ -2,6 +2,7 @@ package at.aau.serg.sdlapp.model.player
 
 import android.util.Log
 import at.aau.serg.sdlapp.model.game.GameConstants
+import at.aau.serg.sdlapp.model.player.PlayerRepository
 
 /**
  * Verwaltet alle Spieler und ihre Positionen (Singleton)
@@ -138,8 +139,69 @@ object PlayerManager {
         player.color = color
         println("🎨 Farbe für Spieler $playerId auf $colorName aktualisiert")
     }
+    //Setzt das Startgeld für einen Spieler
+    fun setStartMoneyForPlayer(playerId: String, viaUniversity: Boolean) {
+        val player = _players[playerId] ?: return
+
+        player.money = if (viaUniversity) 50_000 else 250_000
+        Log.d("PlayerManager", "💸 Startgeld für $playerId gesetzt: ${player.money} (${if (viaUniversity) "Studium" else "Karriere"})")
+    }
+
 
     fun getAllPlayersAsList() : List<Player> = players.values.toList()
+
+    // Status, ob das Spiel bereits beendet wurde
+    private var gameFinished = false
+
+    fun markGameFinished() {
+        gameFinished = true
+    }
+
+    fun isGameFinished(): Boolean = gameFinished
+
+    /**
+     * Prüft, ob ein oder alle Spieler auf dem Endfeld stehen
+     */
+    fun haveAllPlayersFinished(): Boolean {
+        val allPlayers = getAllPlayersAsList()
+
+        // Debug-Ausgabe
+        allPlayers.forEach {
+            Log.d("FinishCheck", "Spieler ${it.name} auf Feld ${it.currentFieldIndex}")
+        }
+
+        // Wenn nur 1 Spieler → genügt, wenn dieser auf einem Endfeld steht
+        if (allPlayers.size == 1) {
+            return allPlayers.first().currentFieldIndex in GameConstants.FINAL_FIELD_INDICES
+        }
+
+        // Sonst: alle müssen auf einem Endfeld sein
+        return allPlayers.all { it.currentFieldIndex in GameConstants.FINAL_FIELD_INDICES }
+    }
+
+
+
+    suspend fun syncPlayerWithServer(playerId: String) {
+        try {
+            val updatedPlayer = PlayerRepository.fetchPlayerById(playerId)
+            val player = _players[playerId] ?: addPlayer(playerId, updatedPlayer.id)
+
+            player.money = updatedPlayer.money
+            player.children = updatedPlayer.children
+            player.hasEducation = updatedPlayer.education
+            player.investments = updatedPlayer.investments
+            player.salary = updatedPlayer.salary
+            player.relationship = updatedPlayer.relationship
+
+            Log.d("PlayerManager", "🔄 Spieler $playerId mit Serverdaten synchronisiert.")
+        } catch (e: Exception) {
+            Log.e("PlayerManager", "❌ Fehler beim Synchronisieren von $playerId: ${e.message}")
+        }
+    }
+
+
+
+
 
     fun clearPlayers(){
         _players.clear()

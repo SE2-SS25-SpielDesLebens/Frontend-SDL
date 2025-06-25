@@ -480,6 +480,19 @@ class BoardUIManager(
         dialog.show()
     }
 
+    fun showStartMoneyOverlay(amount: Int, reason: String) {
+        Handler(Looper.getMainLooper()).post {
+            AlertDialog.Builder(context)
+                .setTitle("💸 Guthaben erhalten")
+                .setMessage("Du erhältst $amount€ durch $reason.")
+                .setPositiveButton("OK", null)
+                .create()
+                .show()
+        }
+    }
+
+
+
     /**
      * Aktualisiert den Status-Text mit der Anzahl der aktiven Spieler
      */

@@ -58,6 +58,8 @@ class BoardMoveManager(
         println("🔄 Lokaler Feldindex aktualisiert: $oldFieldIndex -> ${move.fieldIndex}")
 
         playerManager.updatePlayerPosition(playerId, move.fieldIndex)
+        updateFieldIdInBackend(playerId, move.fieldIndex)
+
 
         val field = BoardData.board.find { it.index == move.fieldIndex }
         if (field != null) {
@@ -189,7 +191,32 @@ class BoardMoveManager(
         this.currentFieldIndex = fieldIndex
         println("🔄 Field-Index aktualisiert: $fieldIndex")
     }
-    
+
+    private fun updateFieldIdInBackend(playerId: String, newFieldId: Int) {
+        Thread {
+            try {
+                val url = "http://se2-demo.aau.at:53217/players/$playerId/field/$newFieldId"
+                val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "PUT"
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
+                connection.doOutput = true
+
+                val responseCode = connection.responseCode
+                if (responseCode == 200) {
+                    Log.d("BoardMoveManager", "✅ Feld-ID $newFieldId erfolgreich für $playerId gesendet")
+                } else {
+                    Log.w("BoardMoveManager", "⚠️ Fehler beim Feld-Update: HTTP $responseCode")
+                }
+
+                connection.disconnect()
+            } catch (e: Exception) {
+                Log.e("BoardMoveManager", "❌ Fehler beim Senden der Feld-ID: ${e.message}")
+            }
+        }.start()
+    }
+
+
 
 
     /**

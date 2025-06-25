@@ -1,8 +1,8 @@
 package at.aau.serg.sdlapp.network.message.lobby
 
 import org.junit.Assert.*
-import org.junit.Test
-
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 class LobbyUpdateMessageTest {
     @Test
     fun `constructor sets all values correctly`() {
@@ -13,19 +13,19 @@ class LobbyUpdateMessageTest {
             player4 = "Dana",
             isStarted = true
         )
-        assertEquals("Alice", message.player1)
-        assertEquals("Bob", message.player2)
-        assertEquals("Charlie", message.player3)
-        assertEquals("Dana", message.player4)
-        assertTrue(message.isStarted)
+        Assertions.assertEquals("Alice", message.player1)
+        Assertions.assertEquals("Bob", message.player2)
+        Assertions.assertEquals("Charlie", message.player3)
+        Assertions.assertEquals("Dana", message.player4)
+        Assertions.assertTrue(message.isStarted)
     }
 
     @Test
     fun `copy creates identical but separate object`() {
         val original = LobbyUpdateMessage("A", "B", "C", "D", false)
         val copy = original.copy()
-        assertEquals(original, copy)
-        assertNotSame(original, copy)
+        Assertions.assertEquals(original, copy)
+        Assertions.assertNotSame(original, copy)
     }
 
     @Test
@@ -33,7 +33,7 @@ class LobbyUpdateMessageTest {
         val m1 = LobbyUpdateMessage("A", "B", "C", "D", false)
         val m2 = LobbyUpdateMessage("A", "B", "C", "D", false)
         val m3 = LobbyUpdateMessage("A", "B", "C", "D", true)
-        assertEquals(m1, m2)
-        assertNotEquals(m1, m3)
+        Assertions.assertEquals(m1, m2)
+        Assertions.assertNotEquals(m1, m3)
     }
 }

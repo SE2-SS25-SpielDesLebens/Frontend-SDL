@@ -10,21 +10,16 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
 }
 
-
-
 jacoco {
     toolVersion = "0.8.8"
 }
 
 android {
-
     namespace = "at.aau.serg.sdlapp"
     compileSdk = 35
 
-
     sourceSets.getByName("main").apply {
         java.srcDirs("src/main/java", "src/main/kotlin")
-        // Don't try to set `kotlin.srcDirs` here, it's not valid in the Kotlin Android plugin
     }
 
     packaging {
@@ -38,7 +33,6 @@ android {
             )
         }
     }
-
 
     defaultConfig {
         applicationId = "at.aau.serg.sdlapp"
@@ -104,12 +98,8 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         xml.outputLocation.set(layout.buildDirectory.file("reports/jacoco/jacocoTestReport/jacocoTestReport.xml"))
     }
 
-    val fileFilter = listOf(
-        "**/R.class", "**/R$*.class", "**/BuildConfig.*", "**/Manifest*.*",
-        "**/*Test*.*", "android/**/*.*",
-        "**/di/**/*.*", "**/*_Factory.*", "**/*_MembersInjector.*",
-        "**/*_Provide*Factory.*", "**/*_ViewBinding.*", "**/*Activity.*", "**/*Message.*"
-    )
+    val fileFilter = emptyList<String>()
+
 
     val debugTree = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
         exclude(fileFilter)
@@ -140,7 +130,7 @@ sonar {
         property("sonar.host.url", "https://sonarcloud.io")
         property("sonar.java.coveragePlugin", "jacoco")
         property("sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get()}/reports/jacoco/jacocoTestReport/jacocoTestReport.xml")
-        property("sonar.exclusions","**/StompConnectionManager,**/*Activity.kt,**/Color.kt,**/Theme.kt,**/Type.kt,**/ActionCard.kt,**/PlayerModell.kt,**/PlayerRepository.kt,**/PlayerStatsOverlay.kt,**/GameScreen.kt,**/BoardData.kt,**/Field.kt,**/FieldTyp.kt,**/Board.kt,**/JobMessage.kt,**/JobRequestMessage.kt,**/PlayerViewModel.kt,**/FieldUI.kt, **/PlayerStatsOverlayScreen.kt,**/AllPlayerStatsScreen.kt,**/*board*/**/*,**/*board*.kt,**/MoveMessage.kt,**/StompConnectionManager.kt,**/BoardDataMessage.kt, **/LobbyViewModel.kt")
+        property("sonar.exclusions", "**/*Activity*.kt,**/*Color*.kt,**/*Theme*.kt,**/*Typ*.kt,**/*Screen*.kt,**/ActionCard.kt, **/*ViewModel*.kt,**/PlayerModell.kt,**/BoardData.kt,**/FieldTyp.kt,**/FieldUI.kt, **/PlayerStatsOverlay.kt")
     }
 }
 
@@ -172,6 +162,10 @@ dependencies {
     implementation(libs.krossbow.stomp.core)
     implementation(libs.krossbow.websocket.okhttp)
     implementation(libs.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.volley)
+
+
 
 
 
@@ -186,6 +180,8 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.arch.core.testing)
+    testImplementation(libs.mockwebserver)
+
 
     // --- Instrumented/UI-Test Dependencies ---
     androidTestImplementation(libs.ui.test.junit4)
@@ -213,6 +209,8 @@ dependencies {
     testImplementation(libs.kotlinx.serialization.json)
     testImplementation(libs.mockito.core)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(kotlin("test"))
+
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {

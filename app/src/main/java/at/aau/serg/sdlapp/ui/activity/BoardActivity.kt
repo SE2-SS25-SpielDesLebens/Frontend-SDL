@@ -1,6 +1,5 @@
 package at.aau.serg.sdlapp.ui.activity
 
-import at.aau.serg.sdlapp.model.player.PlayerManager
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -12,17 +11,25 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.viewModels
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import at.aau.serg.sdlapp.R
+import at.aau.serg.sdlapp.model.board.BoardData
 import at.aau.serg.sdlapp.model.board.Field
+import at.aau.serg.sdlapp.model.player.PlayerManager
 import at.aau.serg.sdlapp.network.message.MoveMessage
+import at.aau.serg.sdlapp.network.viewModels.PlayerViewModel
 import at.aau.serg.sdlapp.ui.board.BoardFigureManager
 import at.aau.serg.sdlapp.ui.board.BoardMoveManager
 import at.aau.serg.sdlapp.ui.board.BoardNetworkManager
 import at.aau.serg.sdlapp.ui.board.BoardUIManager
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
 import com.otaliastudios.zoom.ZoomLayout
+import org.json.JSONObject
+
 
 /**
  * Die BoardActivity ist die Hauptaktivität des Spiels und verwaltet die
@@ -40,6 +47,7 @@ class BoardActivity : ComponentActivity(),
     private lateinit var diceButton: ImageButton
     private lateinit var playerName: String
     private lateinit var statsButton: ImageButton
+    private val viewModel: PlayerViewModel by viewModels()
 
 
     // Manager für verschiedene Aspekte des Spiels
@@ -48,6 +56,7 @@ class BoardActivity : ComponentActivity(),
     private lateinit var figureManager: BoardFigureManager
     private lateinit var uiManager: BoardUIManager
     private lateinit var moveManager: BoardMoveManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_board)
@@ -470,66 +479,84 @@ class BoardActivity : ComponentActivity(),
 
         try {
             // Detaillierte Debug-Ausgabe
-            Log.d(
-                "BoardActivity",
-                "Bewegung für Spieler ${move.playerName} (ID=${move.playerId}) zu Feld ${move.fieldIndex}"
-            )
-            Log.d(
-                "BoardActivity",
-                "Feldtyp: ${move.typeString}, Nächste Felder: ${move.nextPossibleFields}"
-            )
+            Log.d("BoardActivity", "Bewegung für Spieler ${move.playerName} (ID=${move.playerId}) zu Feld ${move.fieldIndex}")
+            Log.d("BoardActivity", "Feldtyp: ${move.typeString}, Nächste Felder: ${move.nextPossibleFields}")
 
-            // Toast mit Info anzeigen
-            Toast.makeText(
-                this,
-                "Bewegung für Spieler ${move.playerName} zu Feld ${move.fieldIndex}",
-                Toast.LENGTH_SHORT
-            ).show()
+            // Info-Toast
+            Toast.makeText(this, "Bewegung für Spieler ${move.playerName} zu Feld ${move.fieldIndex}", Toast.LENGTH_SHORT).show()
 
-            // Verfügbarkeit des Zielfelds prüfen
-            val fieldExists =
-                at.aau.serg.sdlapp.model.board.BoardDataManager.fieldExists(move.fieldIndex)
+            // Prüfen, ob das Feld lokal vorhanden ist
+            val fieldExists = at.aau.serg.sdlapp.model.board.BoardDataManager.fieldExists(move.fieldIndex)
             if (!fieldExists) {
-                Log.w(
-                    "BoardActivity",
-                    "⚠️ Zielfeld ${move.fieldIndex} existiert nicht in lokalen BoardData"
-                )
-
-                // Toast mit Warnung anzeigen
-                Toast.makeText(
-                    this,
-                    "Warnung: Feld ${move.fieldIndex} nicht lokal vorhanden",
-                    Toast.LENGTH_LONG
-                ).show()
+                Log.w("BoardActivity", "⚠️ Zielfeld ${move.fieldIndex} existiert nicht in lokalen BoardData")
+                Toast.makeText(this, "Warnung: Feld ${move.fieldIndex} nicht lokal vorhanden", Toast.LENGTH_LONG).show()
             }
 
-            // Bewegungsnachricht an Move-Manager übergeben
-            moveManager.handleMoveMessage(
-                move,
-                playerId,
-                playerName,
-                networkManager.getStompClient()
-            )
+            // Bewegung verarbeiten
+            moveManager.handleMoveMessage(move, playerId, playerName, networkManager.getStompClient())
+
+            // Lokale Daten reichen aus – keine API-Abfrage nötig
+            Log.d("BoardActivity", "📊 Spielerwerte nach Bewegung: ${PlayerManager.getPlayer(move.playerId)}")
+
+
+            // ✅ Spielende prüfen
+            if (PlayerManager.haveAllPlayersFinished() && !PlayerManager.isGameFinished()) {
+                Log.d("BoardActivity", "🎉 Alle Spieler haben das Ziel erreicht!")
+                PlayerManager.markGameFinished()
+                startEndscreen()
+            }
+
+            val paydayCrossed = move.passedFields?.any { fieldIndex ->
+                val field = BoardData.board.find { it.index == fieldIndex }
+                field?.type?.name == "ZAHLTAG"
+            } == true
+
+
+            Log.d("Zahltag", "🟡 paydayCrossed = $paydayCrossed")
+            if (paydayCrossed || move.typeString == "ZAHLTAG") {
+                receiveSalaryFromBackend(move.playerId)
+                Log.d("Zahltag", "🏁 Zahltag erkannt für ${move.playerId}")
+            }
+
+
+
 
         } catch (e: Exception) {
-            // Bei einem Fehler ausführliche Log-Ausgabe und Toast
-            Log.e(
-                "BoardActivity",
-                "❌ Fehler bei der Verarbeitung einer Bewegungsnachricht: ${e.message}",
-                e
-            )
-            Toast.makeText(
-                this,
-                "Fehler bei der Verarbeitung der Bewegung: ${e.message}",
-                Toast.LENGTH_LONG
-            ).show()
+            Log.e("BoardActivity", "❌ Fehler bei der Verarbeitung einer Bewegungsnachricht: ${e.message}", e)
+            Toast.makeText(this, "Fehler bei der Verarbeitung der Bewegung: ${e.message}", Toast.LENGTH_LONG).show()
 
-            // Versuche, durch Neuladung der Brett-Daten zu beheben
             Handler(Looper.getMainLooper()).postDelayed({
                 reloadBoardDataAndPositions()
-            }, 2000) // 2 Sekunden Verzögerung
+            }, 2000)
         }
     }
+
+    private fun receiveSalaryFromBackend(playerId: String) {
+        val url = "http://se2-demo.aau.at:53217/players/$playerId/salary"
+        Log.d("Zahltag", "📤 Sende Zahltag PUT für $playerId an $url")
+
+        val request = StringRequest(
+            com.android.volley.Request.Method.PUT, url,
+            { response ->
+                Log.d("Zahltag", "🎯 Antwort erhalten: $response")
+                fetchAndUpdatePlayerMoney(playerId, showOverlay = true) {
+                    Log.d("Zahltag", "🔁 ViewModel wird geladen nach Zahltag")
+                    viewModel.loadPlayer(playerId)
+                }
+            },
+            { error ->
+                Log.e("Zahltag", "❌ Fehler bei Zahltag: ${error.message}")
+                Toast.makeText(this, "Zahltag fehlgeschlagen", Toast.LENGTH_SHORT).show()
+            }
+        )
+        Volley.newRequestQueue(this).add(request)
+    }
+
+
+
+
+
+
 
     override fun onStartFieldSelected(fieldIndex: Int) {
         moveManager.placePlayerAtStartField(
@@ -539,6 +566,14 @@ class BoardActivity : ComponentActivity(),
             playerName
         )
     }
+
+    private fun startEndscreen() {
+        val intent = Intent(this, EndScreenActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(intent)
+        finish()
+    }
+
 
     override fun onPlayersChanged() {
         // Status-Text aktualisieren da sich die Spielerliste geändert hat
@@ -680,7 +715,58 @@ class BoardActivity : ComponentActivity(),
             Log.e("BoardActivity", "❌ Fehler beim Neuladen der Daten: ${e.message}", e)
             Toast.makeText(this, "Fehler beim Neuladen: ${e.message}", Toast.LENGTH_SHORT).show()
         }
-    }    override fun onPlayerPositionsReceived(positions: Map<String, Int>) {
+    }
+    /**
+     * Ruft das aktuelle Geld vom Backend ab und aktualisiert den PlayerManager
+     */
+    private fun fetchAndUpdatePlayerMoney(
+        playerId: String,
+        showOverlay: Boolean = false,
+        onMoneyFetched: (() -> Unit)? = null
+    ) {
+        val url = "http://se2-demo.aau.at:53217/players/$playerId/money"
+        Log.d("Zahltag", "📞 fetchAndUpdatePlayerMoney AUFGERUFEN für $playerId")
+
+        val request = StringRequest(
+            com.android.volley.Request.Method.GET, url,
+            { response ->
+                try {
+                    val json = JSONObject(response)
+                    val money = json.getInt("money")
+                    val player = PlayerManager.getPlayer(playerId)
+                    Log.d("Zahltag", "📦 Server-Antwort: Geld = $money")
+
+                    if (player != null) {
+                        player.money = money
+                        Log.d("Zahltag", "💰 Neues Geld für $playerId: $money")
+
+                        if (showOverlay) {
+                            println("🟢 Overlay anzeigen mit $money €")
+                            uiManager.showStartMoneyOverlay(money, "Zahltag 💸")
+                        }
+
+                        onMoneyFetched?.invoke()
+                    } else {
+                        Log.e("Zahltag", "❗ Spieler $playerId nicht gefunden im PlayerManager")
+                    }
+                } catch (e: Exception) {
+                    Log.e("Zahltag", "❌ Fehler beim Parsen des Geld-JSON: ${e.message}")
+                }
+            },
+            { error ->
+                Log.e("Zahltag", "❌ Fehler beim Abrufen des Geldes: ${error.message}")
+                Toast.makeText(this, "Fehler beim Abrufen des Geldes", Toast.LENGTH_SHORT).show()
+            }
+        )
+        Volley.newRequestQueue(this).add(request)
+    }
+
+
+
+
+
+
+    override fun onPlayerPositionsReceived(positions: Map<String, Int>) {
         Log.d("BoardActivity", "📍 Spielerpositionen vom Server empfangen: ${positions.size} Positionen")
 
         try {

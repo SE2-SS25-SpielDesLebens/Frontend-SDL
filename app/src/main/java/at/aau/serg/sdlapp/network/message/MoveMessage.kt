@@ -17,7 +17,8 @@ data class MoveMessage(
     @SerializedName("index") val fieldIndex: Int, 
     @SerializedName("type") val typeString: String,
     @SerializedName("timestamp") val timestamp: String? = null,
-    @SerializedName("nextPossibleFields") val nextPossibleFields: List<Int> = emptyList()
+    @SerializedName("nextPossibleFields") val nextPossibleFields: List<Int> = emptyList(),
+    @SerializedName("passedFields") val passedFields: List<Int> = emptyList()
 ) {
     val playerId: String
         get() = playerName
