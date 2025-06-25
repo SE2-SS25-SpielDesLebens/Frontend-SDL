@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -12,10 +11,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import at.aau.serg.sdlapp.model.player.PlayerManager
-import at.aau.serg.sdlapp.ui.PlayerModell
-import at.aau.serg.sdlapp.ui.PlayerStatsOverlay
+import at.aau.serg.sdlapp.model.player.PlayerModell
+import at.aau.serg.sdlapp.ui.PlayerOverlay.PlayerStatsOverlay
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 class PlayerStatsActivity : ComponentActivity() {
 

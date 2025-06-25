@@ -2,7 +2,7 @@ package at.aau.serg.sdlapp.model.player
 
 import android.util.Log
 import at.aau.serg.sdlapp.model.game.GameConstants
-import at.aau.serg.sdlapp.ui.PlayerRepository
+import at.aau.serg.sdlapp.model.player.PlayerRepository
 
 /**
  * Verwaltet alle Spieler und ihre Positionen (Singleton)

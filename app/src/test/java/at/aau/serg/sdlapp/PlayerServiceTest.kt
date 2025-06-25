@@ -1,6 +1,6 @@
 package at.aau.serg.sdlapp
 
-import at.aau.serg.sdlapp.ui.PlayerModell
+import at.aau.serg.sdlapp.model.player.PlayerModell
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 

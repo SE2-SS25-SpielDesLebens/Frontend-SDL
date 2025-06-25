@@ -20,7 +20,7 @@ import at.aau.serg.sdlapp.model.board.BoardData
 import at.aau.serg.sdlapp.model.board.Field
 import at.aau.serg.sdlapp.model.player.PlayerManager
 import at.aau.serg.sdlapp.network.message.MoveMessage
-import at.aau.serg.sdlapp.ui.PlayerViewModel
+import at.aau.serg.sdlapp.network.viewModels.PlayerViewModel
 import at.aau.serg.sdlapp.ui.board.BoardFigureManager
 import at.aau.serg.sdlapp.ui.board.BoardMoveManager
 import at.aau.serg.sdlapp.ui.board.BoardNetworkManager

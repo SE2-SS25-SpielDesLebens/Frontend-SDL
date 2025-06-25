@@ -1,4 +1,4 @@
-package at.aau.serg.sdlapp.ui
+package at.aau.serg.sdlapp.model.player
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -9,7 +9,7 @@ import java.net.URL
 
 object PlayerRepository {
 
-    private const val BASE_URL = "http://se2-demo.aau.at:53217/players"
+    internal var BASE_URL = "http://se2-demo.aau.at:53217/players"
 
     // ✅ JSON-Konfiguration: Unbekannte Keys ignorieren
     private val json = Json {
