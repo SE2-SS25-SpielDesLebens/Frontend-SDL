@@ -180,6 +180,8 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.arch.core.testing)
+    testImplementation(libs.mockwebserver)
+
 
     // --- Instrumented/UI-Test Dependencies ---
     androidTestImplementation(libs.ui.test.junit4)

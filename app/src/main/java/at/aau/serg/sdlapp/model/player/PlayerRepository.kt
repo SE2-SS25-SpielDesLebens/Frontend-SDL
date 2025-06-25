@@ -9,7 +9,7 @@ import java.net.URL
 
 object PlayerRepository {
 
-    private const val BASE_URL = "http://se2-demo.aau.at:53217/players"
+    internal var BASE_URL = "http://se2-demo.aau.at:53217/players"
 
     // ✅ JSON-Konfiguration: Unbekannte Keys ignorieren
     private val json = Json {

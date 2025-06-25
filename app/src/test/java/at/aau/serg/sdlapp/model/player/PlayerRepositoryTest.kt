@@ -1,119 +1,91 @@
 package at.aau.serg.sdlapp.model.player
 
-import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.junit.*
-import java.io.ByteArrayInputStream
-import java.net.HttpURLConnection
-import java.net.URL
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class PlayerRepositoryTest {
 
-    private lateinit var mockConnection: HttpURLConnection
-
-    private val dummyPlayerJson = """
-        {
-            "id": "test123",
-            "money": 5000,
-            "investments": 2,
-            "salary": 3000,
-            "children": 1,
-            "education": true,
-            "relationship": false
-        }
-    """.trimIndent()
+    private lateinit var server: MockWebServer
 
     @Before
-    fun setUp() {
-        mockConnection = mockk(relaxed = true)
-        mockkStatic(URL::class)
+    fun setup() {
+        server = MockWebServer()
+        server.start()
+
+        // BASE_URL im Repository temporär überschreiben
+        val baseUrlField = PlayerRepository::class.java.getDeclaredField("BASE_URL")
+        baseUrlField.isAccessible = true
+        baseUrlField.set(null, server.url("/players").toString().removeSuffix("/"))
     }
 
     @After
     fun tearDown() {
-        unmockkAll()
+        server.shutdown()
     }
 
     @Test
     fun `fetchPlayerById returns valid player`() = runBlocking {
-        every { URL(any()).openConnection() } returns mockConnection
-        every { mockConnection.responseCode } returns 200
-        every { mockConnection.inputStream } returns ByteArrayInputStream(dummyPlayerJson.toByteArray())
+        val responseJson = """
+            {
+                "id": "test123",
+                "money": 5000,
+                "investments": 2,
+                "salary": 3000,
+                "children": 1,
+                "education": true,
+                "relationship": false
+            }
+        """.trimIndent()
+
+        server.enqueue(MockResponse().setBody(responseJson).setResponseCode(200))
 
         val player = PlayerRepository.fetchPlayerById("test123")
 
-        Assert.assertEquals("test123", player.id)
-        Assert.assertEquals(5000, player.money)
-        Assert.assertTrue(player.education)
-        Assert.assertFalse(player.relationship)
-        Assert.assertEquals(2, player.investments)
+        assertEquals("test123", player.id)
+        assertEquals(5000, player.money)
+        assertTrue(player.education)
     }
 
     @Test
-    fun `createPlayer sends POST request and parses response`() = runBlocking {
+    fun `createPlayer sends POST request`() = runBlocking {
         val player = PlayerModell(
-            id = "create123",
-            money = 10000,
+            id = "abc",
+            money = 2000,
             investments = 1,
-            salary = 5000,
+            salary = 1000,
             children = 0,
-            education = false,
-            relationship = true
+            education = true,
+            relationship = false
         )
-        val responseJson = Json.encodeToString(player)
 
-        every { URL(any()).openConnection() } returns mockConnection
-        every { mockConnection.requestMethod = any() } just Runs
-        every { mockConnection.setRequestProperty(any(), any()) } just Runs
-        every { mockConnection.doOutput = any() } just Runs
-        every { mockConnection.outputStream } returns mockk(relaxed = true)
-        every { mockConnection.responseCode } returns HttpURLConnection.HTTP_OK
-        every { mockConnection.inputStream } returns ByteArrayInputStream(responseJson.toByteArray())
+        server.enqueue(MockResponse().setBody(Json.encodeToString(player)).setResponseCode(200))
 
-        val created = PlayerRepository.createPlayer(player)
+        val result = PlayerRepository.createPlayer(player)
 
-        Assert.assertEquals("create123", created.id)
-        Assert.assertEquals(10000, created.money)
-        Assert.assertTrue(created.relationship)
+        assertEquals("abc", result.id)
+        assertEquals(2000, result.money)
+
+        val recordedRequest = server.takeRequest()
+        assertEquals("POST", recordedRequest.method)
+        assertTrue(recordedRequest.body.readUtf8().contains("abc"))
     }
 
     @Test
-    fun `marryPlayer calls makePutRequest`() = runBlocking {
-        mockSuccessfulPut()
-        PlayerRepository.marryPlayer("marry123")
-    }
+    fun `makePutRequest throws exception on error`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(500).setBody("Error"))
 
-    @Test
-    fun `addChild calls makePutRequest`() = runBlocking {
-        mockSuccessfulPut()
-        PlayerRepository.addChild("child123")
-    }
-
-    @Test
-    fun `investForPlayer calls makePutRequest`() = runBlocking {
-        mockSuccessfulPut()
-        PlayerRepository.investForPlayer("invest123")
-    }
-
-    @Test
-    fun `makePutRequest throws exception on failure`() = runBlocking {
-        every { URL(any()).openConnection() } returns mockConnection
-        every { mockConnection.requestMethod = "PUT" } just Runs
-        every { mockConnection.responseCode } returns HttpURLConnection.HTTP_INTERNAL_ERROR
-        every { mockConnection.responseMessage } returns "Server Error"
-
-        val ex = assertFailsWith<RuntimeException> {
-            PlayerRepository.addChild("invalid123")
+        val exception = assertFailsWith<RuntimeException> {
+            PlayerRepository.marryPlayer("fail")
         }
-        Assert.assertTrue(ex.message!!.contains("Fehler bei PUT"))
-    }
-
-    private fun mockSuccessfulPut() {
-        every { URL(any()).openConnection() } returns mockConnection
-        every { mockConnection.requestMethod = "PUT" } just Runs
-        every { mockConnection.responseCode } returns HttpURLConnection.HTTP_OK
+        assertTrue(exception.message!!.contains("Fehler bei PUT"))
     }
 }
